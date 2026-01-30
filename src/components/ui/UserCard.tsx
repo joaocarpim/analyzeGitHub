@@ -1,7 +1,9 @@
 import type { GitHubUser } from "../../types";
+
 interface UserCardProps {
   user: GitHubUser;
 }
+
 export const UserCard = ({ user }: UserCardProps) => (
   <a
     href={user.html_url}
