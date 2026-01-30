@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
+  // CORS Headers
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -13,41 +14,41 @@ export default async function handler(req, res) {
   );
 
   if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
-
-  const API_KEY = process.env.GEMINI_API_KEY;
-
-  if (!API_KEY) {
-    return res
-      .status(500)
-      .json({ error: "Chave de API não configurada no servidor." });
+    return res.status(200).end();
   }
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método não permitido." });
   }
 
+  const API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+
+  if (!API_KEY) {
+    return res.status(500).json({ error: "Chave de API não configurada." });
+  }
+
   try {
-    const { profileData, aiMode } = req.body;
+    // CORREÇÃO AQUI: Extraindo 'profile', 'repos' e 'mode' igual ao frontend manda
+    const { profile, repos, mode } = req.body;
+
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     let promptInstruction = "";
-    if (aiMode === "friendly") {
+    if (mode === "friendly") {
       promptInstruction =
         "Aja como um mentor de carreira Senior muito gentil e motivador. Dê feedback construtivo, elogie os pontos fortes e sugira melhorias com carinho. Use emojis.";
-    } else if (aiMode === "liar") {
+    } else if (mode === "liar") {
       promptInstruction =
         "Aja como um 'Influencer de LinkedIn' exagerado e meio mentiroso. Aumente tudo o que ver no perfil. Se o código for ruim, diga que é 'inovação disruptiva'. Use jargões corporativos vazios. Seja engraçado.";
-    } else if (aiMode === "roast") {
+    } else if (mode === "roast") {
       promptInstruction =
         "Aja como um recrutador Senior impaciente e 'savage' (brutalmente honesto). Dê um choque de realidade ('Acorda pra vida'). Critique a bio, a proporção de seguidores e linguagens. Seja duro, mas sarcástico.";
     }
 
     const prompt = `
-      Analise este perfil JSON do GitHub: ${JSON.stringify(profileData)}
+      Analise este perfil JSON do GitHub: ${JSON.stringify(profile)}
+      E estes repositórios: ${JSON.stringify(repos)}
       
       ${promptInstruction}
       

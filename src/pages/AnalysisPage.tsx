@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-// Adicionado o ícone Lock na importação
 import { ArrowLeft, UserMinus, Sparkles, X, Lock } from "lucide-react";
+
 import {
   useGithubProfile,
   useGithubConnections,
@@ -67,23 +67,57 @@ export const AnalysisPage = () => {
     );
   }, [analyzedData, activeTab, filterText]);
 
+  // --- ESTRUTURA DE LOGS PARA DEBUG ---
   const handleGenerateFeedback = async () => {
-    if (!profile || !repos) return;
+    console.group("🔍 DEBUG: Início da Geração de Feedback");
+
+    // 1. Verificar se os dados existem
+    if (!profile || !repos) {
+      console.error("❌ DEBUG 1: Dados incompletos", {
+        profile: !!profile,
+        repos: !!repos,
+      });
+      console.groupEnd();
+      return;
+    }
+
+    console.log("✅ DEBUG 1: Dados iniciais carregados", {
+      usuario: profile.login,
+      qtdRepos: repos.length,
+      modoSelecionado: aiMode,
+    });
+
     setAiLoading(true);
     setAiResult("");
+
     try {
+      console.log("🚀 DEBUG 2: Chamando aiService.generateFeedback...");
+
+      // Aqui vamos ver o payload antes de enviar (se possível no service)
       const result = await aiService.generateFeedback({
         profile,
         repos,
         mode: aiMode,
       });
+
+      console.log("✅ DEBUG 3: Resposta recebida com sucesso:", result);
       setAiResult(result);
-    } catch (err) {
+    } catch (err: any) {
+      // 2. Captura detalhada do erro
+      console.error("❌ DEBUG 4: Erro capturado no catch:", err);
+
+      if (err.message) console.error("Mensagem do erro:", err.message);
+
+      // Se for erro de rede/fetch, muitas vezes vem status
+      if (err.status) console.error("Status HTTP:", err.status);
+
       setAiResult(
-        "**Erro:** O servidor não conseguiu processar sua solicitação.",
+        `**Erro Técnico:** ${err.message || "Falha desconhecida no servidor."}`,
       );
     } finally {
+      console.log("🏁 DEBUG 5: Finalizando loading (finally block)");
       setAiLoading(false);
+      console.groupEnd();
     }
   };
 
@@ -213,11 +247,10 @@ export const AnalysisPage = () => {
             </div>
 
             <div style={{ marginTop: 20 }}>
-              {/* NOVA BOX DE SEGURANÇA / PRIVACIDADE */}
               <div
                 style={{
-                  border: "1px solid rgba(139, 92, 246, 0.4)", // Borda roxa suave
-                  background: "rgba(139, 92, 246, 0.1)", // Fundo roxo bem leve
+                  border: "1px solid rgba(139, 92, 246, 0.4)",
+                  background: "rgba(139, 92, 246, 0.1)",
                   borderRadius: "12px",
                   padding: "16px",
                   marginBottom: "24px",
