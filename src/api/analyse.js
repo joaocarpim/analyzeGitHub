@@ -1,8 +1,6 @@
-// Este código roda no SERVIDOR do Vercel, longe dos olhos do usuário.
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
-  // 1. Configurar CORS (Permitir que seu site acesse esta função)
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -14,13 +12,11 @@ export default async function handler(req, res) {
     "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
   );
 
-  // Responder rápido para requisições OPTIONS (Pre-flight do navegador)
   if (req.method === "OPTIONS") {
     res.status(200).end();
     return;
   }
 
-  // 2. Segurança: Garantir que a chave existe no servidor
   const API_KEY = process.env.GEMINI_API_KEY;
 
   if (!API_KEY) {
@@ -30,14 +26,11 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método não permitido. Use POST." });
+    return res.status(405).json({ error: "Método não permitido." });
   }
 
   try {
-    // 3. Pegar os dados que o Front-end mandou
     const { profileData, aiMode } = req.body;
-
-    // 4. Configurar a IA (Exatamente como fazíamos no front, mas agora seguro)
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
@@ -61,7 +54,6 @@ export default async function handler(req, res) {
       O feedback deve ser completo, formatado em Markdown com títulos, tópicos e uma conclusão. Fale em Português do Brasil.
     `;
 
-    // 5. Gerar e devolver
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
