@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
+  // LOG 1: Início
+  console.log("--> [API] Iniciando handler /api/analyze");
+
+  // Configuração CORS
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -17,12 +21,15 @@ export default async function handler(req, res) {
     return;
   }
 
+  // LOG 2: Verificando Chave
   const API_KEY = process.env.GEMINI_API_KEY;
+  console.log(`--> [API] Chave configurada? ${API_KEY ? "SIM" : "NÃO"}`);
 
   if (!API_KEY) {
+    console.error("--> [API] ERRO: Variável de ambiente GEMINI_API_KEY vazia.");
     return res
       .status(500)
-      .json({ error: "Chave de API não configurada no servidor." });
+      .json({ error: "Configuração de servidor ausente (Chave API)." });
   }
 
   if (req.method !== "POST") {
@@ -31,19 +38,25 @@ export default async function handler(req, res) {
 
   try {
     const { profileData, aiMode } = req.body;
+
+    console.log("--> [API] Payload recebido:", {
+      aiMode,
+      username: profileData?.name || "Desconhecido",
+    });
+
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     let promptInstruction = "";
     if (aiMode === "friendly") {
       promptInstruction =
-        "Aja como um mentor de carreira Senior muito gentil e motivador. Dê feedback construtivo, elogie os pontos fortes e sugira melhorias com carinho. Use emojis.";
+        "Aja como um mentor de carreira Senior muito gentil e motivador. Dê feedback construtivo.";
     } else if (aiMode === "liar") {
       promptInstruction =
-        "Aja como um 'Influencer de LinkedIn' exagerado e meio mentiroso. Aumente tudo o que ver no perfil. Se o código for ruim, diga que é 'inovação disruptiva'. Use jargões corporativos vazios. Seja engraçado.";
+        "Aja como um 'Influencer de LinkedIn' exagerado e meio mentiroso. Use jargões corporativos vazios.";
     } else if (aiMode === "roast") {
       promptInstruction =
-        "Aja como um recrutador Senior impaciente e 'savage' (brutalmente honesto). Dê um choque de realidade ('Acorda pra vida'). Critique a bio, a proporção de seguidores e linguagens. Seja duro, mas sarcástico.";
+        "Aja como um recrutador Senior impaciente e 'savage' (brutalmente honesto). Dê um choque de realidade.";
     }
 
     const prompt = `
@@ -54,13 +67,18 @@ export default async function handler(req, res) {
       O feedback deve ser completo, formatado em Markdown com títulos, tópicos e uma conclusão. Fale em Português do Brasil.
     `;
 
+    console.log("--> [API] Enviando prompt ao Gemini...");
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
+    console.log("--> [API] Sucesso! Tamanho da resposta:", text.length);
     return res.status(200).json({ result: text });
   } catch (error) {
-    console.error("Erro na API Gemini:", error);
-    return res.status(500).json({ error: "Falha ao processar com a IA." });
+    console.error("--> [API] ERRO FATAL:", error);
+    return res.status(500).json({
+      error: "Erro interno no servidor de IA.",
+      details: error.message,
+    });
   }
 }

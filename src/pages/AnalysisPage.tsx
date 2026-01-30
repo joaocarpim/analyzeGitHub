@@ -45,7 +45,6 @@ export const AnalysisPage = () => {
     const followingSet = new Set(
       relations.following.map((u) => u.login.toLowerCase()),
     );
-
     return {
       nonFollowers: relations.following.filter(
         (u) => !followersSet.has(u.login.toLowerCase()),
@@ -71,6 +70,7 @@ export const AnalysisPage = () => {
     if (!profile || !repos) return;
     setAiLoading(true);
     setAiResult("");
+    console.log("0. [Page] Clicou em Gerar");
     try {
       const result = await aiService.generateFeedback({
         profile,
@@ -78,10 +78,9 @@ export const AnalysisPage = () => {
         mode: aiMode,
       });
       setAiResult(result);
-    } catch (err) {
-      setAiResult(
-        "**Erro:** O servidor não conseguiu processar sua solicitação.",
-      );
+    } catch (err: any) {
+      console.error("3. [Page] Erro capturado:", err);
+      setAiResult(`**Erro:** ${err.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -89,60 +88,62 @@ export const AnalysisPage = () => {
 
   if (loadingProfile || loadingRelations) return <SkeletonLoader />;
 
-  if (error) {
+  if (error)
     return (
       <div className="error-state">
         <h3 className="state-title">Erro ao buscar dados</h3>
-        <button onClick={() => navigate("/")} className="btn btn-primary">
+        <button onClick={() => navigate("/")} className="btn-primary">
           Voltar
         </button>
       </div>
     );
-  }
 
   return (
     <div className="analysis-container">
       <button
         onClick={() => navigate("/")}
-        className="user-link"
         style={{
           marginBottom: 20,
           background: "none",
           border: "none",
           fontSize: 16,
           cursor: "pointer",
+          color: "var(--text-primary)",
+          display: "flex",
+          alignItems: "center",
         }}
       >
-        <ArrowLeft size={16} style={{ display: "inline", marginRight: 5 }} />{" "}
-        Voltar
+        <ArrowLeft size={16} style={{ marginRight: 5 }} /> Voltar
       </button>
 
       {profile && (
         <>
-          <div className="profile-summary">
+          {/* Header do Perfil */}
+          <div className="profile-header">
             <img
               src={profile.avatar_url}
               alt={profile.login}
-              className="profile-summary-avatar"
+              className="profile-avatar"
             />
-            <div className="profile-summary-info">
+            <div className="profile-info">
               <h2>{profile.name || profile.login}</h2>
               <p>@{profile.login}</p>
             </div>
           </div>
 
+          {/* Grid Compacto */}
           <div className="stats-grid">
             <StatCard label="Seguidores" value={profile.followers} />
             <StatCard label="Seguindo" value={profile.following} />
             <StatCard
-              label="Não seguem volta"
+              label="Não seguem"
               value={analyzedData.nonFollowers.length}
               highlight
             />
           </div>
 
           <div className="ai-trigger-container">
-            <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
+            <button className="btn-ai" onClick={() => setShowAIModal(true)}>
               <Sparkles size={18} /> Gerar Feedback com IA
             </button>
           </div>
@@ -154,7 +155,7 @@ export const AnalysisPage = () => {
           className={`tab ${activeTab === "nonFollowers" ? "active" : ""}`}
           onClick={() => setActiveTab("nonFollowers")}
         >
-          <UserMinus size={18} /> Não seguem de volta{" "}
+          <UserMinus size={18} /> Não seguem{" "}
           <span className="badge">{analyzedData.nonFollowers.length}</span>
         </button>
         <button
@@ -193,81 +194,72 @@ export const AnalysisPage = () => {
             className="ai-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="modal-header"
-              style={{
-                position: "relative",
-                background: "transparent",
-                padding: 0,
-                border: "none",
-              }}
-            >
-              <h2>Análise de Perfil com IA 🤖</h2>
+            <div className="modal-header">
+              <h2>IA Análise 🤖</h2>
               <button
                 className="modal-close"
-                style={{ top: -10, right: -10 }}
                 onClick={() => setShowAIModal(false)}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ marginTop: 20 }}>
-              <div
-                style={{
-                  textAlign: "center",
-                  marginBottom: 24,
-                  padding: 20,
-                  background: "var(--bg-tertiary)",
-                  borderRadius: 16,
-                }}
-              >
-                <Bot
-                  size={32}
-                  color="var(--accent-secondary)"
-                  style={{ marginBottom: 10 }}
-                />
-                <p style={{ fontSize: 15, color: "var(--text-primary)" }}>
-                  Nossa IA vai analisar seu perfil e repositórios.
-                </p>
-              </div>
-
-              <div className="ai-options">
-                <button
-                  className={`btn-option ${aiMode === "friendly" ? "selected friendly" : ""}`}
-                  onClick={() => setAiMode("friendly")}
-                >
-                  🥰 Amigável
-                </button>
-                <button
-                  className={`btn-option ${aiMode === "liar" ? "selected liar" : ""}`}
-                  onClick={() => setAiMode("liar")}
-                >
-                  🤥 Mentiroso
-                </button>
-                <button
-                  className={`btn-option ${aiMode === "roast" ? "selected roast" : ""}`}
-                  onClick={() => setAiMode("roast")}
-                >
-                  🔥 Acorda pra vida
-                </button>
-              </div>
-
-              <button
-                className="btn btn-primary"
-                style={{ width: "100%" }}
-                onClick={handleGenerateFeedback}
-                disabled={aiLoading}
-              >
-                {aiLoading ? "Processando..." : "Gerar Análise"}
-              </button>
-
-              {aiResult && (
-                <div className="ai-result-box animate-fade-in">
-                  <ReactMarkdown>{aiResult}</ReactMarkdown>
-                </div>
-              )}
+            {/* --- CORREÇÃO AQUI: Usando o Bot que estava sobrando --- */}
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: 24,
+                padding: 20,
+                background: "var(--bg-tertiary)",
+                borderRadius: 16,
+              }}
+            >
+              <Bot
+                size={32}
+                color="var(--accent-secondary)"
+                style={{ marginBottom: 10 }}
+              />
+              <p style={{ fontSize: 15, color: "var(--text-primary)" }}>
+                Nossa IA vai analisar seu perfil e repositórios.
+              </p>
             </div>
+            {/* ------------------------------------------------------- */}
+
+            <div className="ai-options">
+              <button
+                className={`btn-option ${aiMode === "friendly" ? "selected" : ""}`}
+                onClick={() => setAiMode("friendly")}
+              >
+                🥰 Amigável
+              </button>
+              <button
+                className={`btn-option ${aiMode === "liar" ? "selected" : ""}`}
+                onClick={() => setAiMode("liar")}
+              >
+                🤥 Mentiroso
+              </button>
+              <button
+                className={`btn-option ${aiMode === "roast" ? "selected" : ""}`}
+                onClick={() => setAiMode("roast")}
+              >
+                🔥 Acorda
+              </button>
+            </div>
+
+            <button
+              className="btn-primary"
+              style={{ width: "100%" }}
+              onClick={handleGenerateFeedback}
+              disabled={aiLoading}
+            >
+              {aiLoading ? "Processando..." : "Gerar Análise"}
+            </button>
+
+            {aiResult && (
+              <div className="ai-result-box animate-fade-in">
+                <ReactMarkdown>{aiResult}</ReactMarkdown>
+              </div>
+            )}
           </div>
         </div>
       )}
