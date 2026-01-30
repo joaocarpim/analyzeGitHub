@@ -3,7 +3,6 @@ interface StatCardProps {
   value: number;
   highlight?: boolean;
 }
-
 export const StatCard = ({ label, value, highlight }: StatCardProps) => (
   <div
     className="stat-card"

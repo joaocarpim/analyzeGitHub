@@ -11,7 +11,6 @@ function App() {
         <div className="gradient-orb orb-1"></div>
         <div className="gradient-orb orb-2"></div>
       </div>
-
       <div className="app-container">
         <Header />
         <Routes>
@@ -22,5 +21,4 @@ function App() {
     </BrowserRouter>
   );
 }
-
 export default App;
