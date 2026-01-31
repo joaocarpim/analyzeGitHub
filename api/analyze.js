@@ -1,14 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { NextApiRequest, NextApiResponse } from "next";
 
-export const config = {
-  maxDuration: 60,
-};
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+export default async function handler(req, res) {
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -25,10 +17,10 @@ export default async function handler(
   try {
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
+      console.error("❌ API Key não encontrada!");
       return res.status(500).json({ error: "Chave API não configurada" });
     }
 
-    // CORREÇÃO AQUI: Lendo 'profileData' e 'aiMode' que o aiService manda
     const { profileData, aiMode } = req.body;
 
     if (!profileData) {
@@ -38,7 +30,6 @@ export default async function handler(
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    // Personalidade baseada no 'aiMode'
     let promptInstruction = "Aja como um analista técnico neutro.";
     if (aiMode === "friendly")
       promptInstruction = "Seja um mentor gentil e use emojis 🥰.";
@@ -61,8 +52,10 @@ export default async function handler(
     const text = response.text();
 
     return res.status(200).json({ result: text });
-  } catch (error: any) {
-    console.error("Erro API:", error);
-    return res.status(500).json({ error: error.message });
+  } catch (error) {
+    console.error("❌ Erro na API:", error);
+    return res.status(500).json({
+      error: error.message || "Erro interno do servidor",
+    });
   }
 }
