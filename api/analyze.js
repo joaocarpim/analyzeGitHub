@@ -28,7 +28,10 @@ export default async function handler(req, res) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // ← MUDANÇA AQUI
+    // MUDANÇA: Usando gemini-1.5-flash-latest
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash-latest",
+    });
 
     let promptInstruction = "Aja como um analista técnico neutro.";
     if (aiMode === "friendly")
