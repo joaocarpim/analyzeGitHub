@@ -1,5 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export const config = {
   maxDuration: 60,
 };
@@ -19,8 +17,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+    let apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+    if (apiKey) apiKey = apiKey.trim().replace(/^["']|["']$/g, "");
+
     if (!apiKey) {
+      console.error("❌ API Key não encontrada!");
       return res.status(500).json({ error: "Chave API não configurada" });
     }
 
@@ -29,12 +30,6 @@ export default async function handler(req, res) {
     if (!profileData) {
       return res.status(400).json({ error: "Dados do perfil ausentes" });
     }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    // --- NOME DO MODELO ---
-    // Usando a versão exata '001' que é a mais compatível atualmente.
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
     let promptInstruction = "Aja como um analista técnico neutro.";
     if (aiMode === "friendly")
@@ -53,9 +48,36 @@ export default async function handler(req, res) {
       Responda em Português do Brasil usando Markdown.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // ✅ USANDO GEMINI-PRO
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Erro da API Gemini:", errorData);
+      throw new Error(`API Error: ${JSON.stringify(errorData)}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates[0].content.parts[0].text;
 
     return res.status(200).json({ result: text });
   } catch (error) {
