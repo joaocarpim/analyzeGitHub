@@ -1,5 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
+// Versão ALTERNATIVA usando fetch direto (sem biblioteca)
 export default async function handler(req, res) {
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -27,12 +26,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Dados do perfil ausentes" });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // MUDANÇA: Usando gemini-1.5-flash-latest
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-    });
-
     let promptInstruction = "Aja como um analista técnico neutro.";
     if (aiMode === "friendly")
       promptInstruction = "Seja um mentor gentil e use emojis 🥰.";
@@ -50,9 +43,36 @@ export default async function handler(req, res) {
       Responda em Português do Brasil usando Markdown.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // Chamada direta para a API do Gemini usando fetch
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Erro da API Gemini:", errorData);
+      throw new Error(`API Error: ${JSON.stringify(errorData)}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates[0].content.parts[0].text;
 
     return res.status(200).json({ result: text });
   } catch (error) {
