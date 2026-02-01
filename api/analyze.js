@@ -29,9 +29,9 @@ export default async function handler(req, res) {
     }
 
     if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY não configurada");
+      console.error("❌ API Key não configurada");
       return res.status(500).json({
-        error: "Chave da API Gemini não configurada",
+        error: "API Key do Gemini não configurada",
       });
     }
 
@@ -47,24 +47,23 @@ export default async function handler(req, res) {
     }
 
     // --------------------
-    // PERSONALIDADE
+    // PERSONALIDADE DA IA
     // --------------------
-    let personality =
-      "Aja como um analista técnico neutro, objetivo e profissional.";
+    let personality = "Aja como um analista técnico neutro e profissional.";
 
     if (aiMode === "friendly") {
       personality =
-        "Aja como um mentor amigável, encorajador e positivo. Use emojis moderadamente 😊.";
+        "Aja como um mentor amigável, positivo e construtivo. Use emojis moderadamente 😊.";
     } else if (aiMode === "liar") {
       personality =
-        "Aja como um influencer exagerado, sensacionalista e pouco confiável 🤥🔥.";
+        "Aja como um influencer exagerado, otimista demais e pouco crítico 🤥✨.";
     } else if (aiMode === "roast") {
       personality =
-        "Aja como um recrutador técnico crítico, direto e sarcástico 🔥.";
+        "Aja como um recrutador técnico exigente, direto e sarcástico 🔥.";
     }
 
     // --------------------
-    // PROMPT
+    // PROMPT FINAL
     // --------------------
     const prompt = `
 Você receberá dados públicos de um perfil do GitHub em formato JSON.
@@ -73,7 +72,7 @@ Objetivo:
 - Avaliar o perfil tecnicamente
 - Identificar pontos fortes
 - Identificar pontos fracos
-- Sugerir melhorias realistas
+- Sugerir melhorias realistas para carreira e projetos
 
 ${personality}
 
@@ -84,14 +83,14 @@ Regras:
 - Responda em Português do Brasil
 - Use Markdown
 - Não invente dados
-- Seja claro e estruturado
+- Seja claro, estruturado e útil
 `;
 
     // --------------------
-    // GEMINI REQUEST (CORRETO)
+    // GEMINI REQUEST (MODELO QUE FUNCIONA)
     // --------------------
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -104,10 +103,6 @@ Regras:
               parts: [{ text: prompt }],
             },
           ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 900,
-          },
         }),
       },
     );
@@ -117,23 +112,24 @@ Regras:
       console.error("❌ Erro Gemini:", errorData);
 
       return res.status(500).json({
-        error: "Erro ao gerar resposta da IA",
+        error: "Erro ao gerar análise com IA",
         details: errorData,
       });
     }
 
     const data = await response.json();
+
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!text) {
-      console.error("❌ Resposta inválida:", data);
+      console.error("❌ Resposta inválida da IA:", data);
       return res.status(500).json({
         error: "Resposta inválida da IA",
       });
     }
 
     // --------------------
-    // SUCCESS
+    // SUCESSO
     // --------------------
     return res.status(200).json({
       result: text,
