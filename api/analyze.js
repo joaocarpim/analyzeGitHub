@@ -3,9 +3,7 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // --------------------
-  // CORS
-  // --------------------
+  // --- CORS ---
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -19,98 +17,70 @@ export default async function handler(req, res) {
   }
 
   try {
-    // --------------------
-    // API KEY
-    // --------------------
-    let apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-
-    if (apiKey) {
-      apiKey = apiKey.trim().replace(/^['"]|['"]$/g, "");
-    }
+    const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-      console.error("❌ API Key não configurada");
-      return res.status(500).json({
-        error: "API Key do Gemini não configurada",
-      });
+      console.error("❌ OPENAI_API_KEY não configurada");
+      return res.status(500).json({ error: "API Key não configurada" });
     }
 
-    // --------------------
-    // BODY
-    // --------------------
     const { profileData, aiMode } = req.body;
 
-    if (!profileData || typeof profileData !== "object") {
-      return res.status(400).json({
-        error: "profileData ausente ou inválido",
-      });
+    if (!profileData) {
+      return res.status(400).json({ error: "Dados do perfil ausentes" });
     }
 
-    // --------------------
-    // PERSONALIDADE DA IA
-    // --------------------
-    let personality = "Aja como um analista técnico neutro e profissional.";
+    // --- PERSONALIDADE DA IA ---
+    let systemPrompt =
+      "Você é um analista técnico de carreira em tecnologia, neutro e objetivo.";
 
     if (aiMode === "friendly") {
-      personality =
-        "Aja como um mentor amigável, positivo e construtivo. Use emojis moderadamente 😊.";
+      systemPrompt =
+        "Você é um mentor gentil, encorajador e positivo. Use emojis com moderação 😊.";
     } else if (aiMode === "liar") {
-      personality =
-        "Aja como um influencer exagerado, otimista demais e pouco crítico 🤥✨.";
+      systemPrompt =
+        "Você é um influencer exagerado, otimista demais e claramente mentiroso 🤥.";
     } else if (aiMode === "roast") {
-      personality =
-        "Aja como um recrutador técnico exigente, direto e sarcástico 🔥.";
+      systemPrompt =
+        "Você é um recrutador técnico brutal, sarcástico e direto. Sem passar pano 🔥.";
     }
 
-    // --------------------
-    // PROMPT FINAL
-    // --------------------
-    const prompt = `
-Você receberá dados públicos de um perfil do GitHub em formato JSON.
+    const userPrompt = `
+Analise o seguinte perfil público do GitHub (JSON):
 
-Objetivo:
-- Avaliar o perfil tecnicamente
-- Identificar pontos fortes
-- Identificar pontos fracos
-- Sugerir melhorias realistas para carreira e projetos
-
-${personality}
-
-Dados do perfil:
 ${JSON.stringify(profileData, null, 2)}
 
-Regras:
-- Responda em Português do Brasil
-- Use Markdown
-- Não invente dados
-- Seja claro, estruturado e útil
-`;
+Forneça:
+- Avaliação geral do perfil
+- Pontos fortes
+- Pontos fracos
+- Sugestões práticas de melhoria
+- Opinião sobre maturidade profissional
 
-    // --------------------
-    // GEMINI REQUEST (MODELO QUE FUNCIONA)
-    // --------------------
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: prompt }],
-            },
-          ],
-        }),
+Responda em Português do Brasil.
+Use Markdown.
+    `;
+
+    // --- CHAMADA OPENAI (GPT-4o) ---
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: "gpt-4o",
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("❌ Erro Gemini:", errorData);
-
+      console.error("❌ Erro OpenAI:", errorData);
       return res.status(500).json({
         error: "Erro ao gerar análise com IA",
         details: errorData,
@@ -118,28 +88,17 @@ Regras:
     }
 
     const data = await response.json();
-
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data.choices?.[0]?.message?.content;
 
     if (!text) {
-      console.error("❌ Resposta inválida da IA:", data);
-      return res.status(500).json({
-        error: "Resposta inválida da IA",
-      });
+      return res.status(500).json({ error: "Resposta vazia da IA" });
     }
 
-    // --------------------
-    // SUCESSO
-    // --------------------
-    return res.status(200).json({
-      result: text,
-    });
-  } catch (error) {
-    console.error("❌ Erro interno:", error);
-
+    return res.status(200).json({ result: text });
+  } catch (err) {
+    console.error("❌ Erro interno:", err);
     return res.status(500).json({
-      error: "Erro interno do servidor",
-      message: error.message,
+      error: err.message || "Erro interno do servidor",
     });
   }
 }
