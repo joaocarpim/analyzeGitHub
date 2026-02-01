@@ -36,36 +36,31 @@ export default async function handler(req, res) {
     }
 
     // --------------------
-    // BODY VALIDATION
+    // BODY
     // --------------------
     const { profileData, aiMode } = req.body;
 
     if (!profileData || typeof profileData !== "object") {
       return res.status(400).json({
-        error: "profileData inválido ou ausente",
+        error: "profileData ausente ou inválido",
       });
     }
 
     // --------------------
-    // AI MODE / PERSONALITY
+    // PERSONALIDADE
     // --------------------
-    let personality = "Aja como um analista técnico neutro e objetivo.";
+    let personality =
+      "Aja como um analista técnico neutro, objetivo e profissional.";
 
-    switch (aiMode) {
-      case "friendly":
-        personality =
-          "Aja como um mentor gentil, positivo e encorajador. Use emojis moderadamente 😊.";
-        break;
-      case "liar":
-        personality =
-          "Aja como um influencer exagerado, mentiroso e sensacionalista 🤥🔥.";
-        break;
-      case "roast":
-        personality =
-          "Aja como um recrutador brutal, sarcástico e crítico, mas técnico 🔥😈.";
-        break;
-      default:
-        break;
+    if (aiMode === "friendly") {
+      personality =
+        "Aja como um mentor amigável, encorajador e positivo. Use emojis moderadamente 😊.";
+    } else if (aiMode === "liar") {
+      personality =
+        "Aja como um influencer exagerado, sensacionalista e pouco confiável 🤥🔥.";
+    } else if (aiMode === "roast") {
+      personality =
+        "Aja como um recrutador técnico crítico, direto e sarcástico 🔥.";
     }
 
     // --------------------
@@ -76,7 +71,8 @@ Você receberá dados públicos de um perfil do GitHub em formato JSON.
 
 Objetivo:
 - Avaliar o perfil tecnicamente
-- Identificar pontos fortes e fracos
+- Identificar pontos fortes
+- Identificar pontos fracos
 - Sugerir melhorias realistas
 
 ${personality}
@@ -87,15 +83,15 @@ ${JSON.stringify(profileData, null, 2)}
 Regras:
 - Responda em Português do Brasil
 - Use Markdown
-- Seja claro, estruturado e direto
-- Não invente dados que não estejam no JSON
+- Não invente dados
+- Seja claro e estruturado
 `;
 
     // --------------------
-    // GEMINI REQUEST
+    // GEMINI REQUEST (CORRETO)
     // --------------------
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -110,31 +106,27 @@ Regras:
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 800,
+            maxOutputTokens: 900,
           },
         }),
       },
     );
 
-    // --------------------
-    // ERROR HANDLING
-    // --------------------
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("❌ Erro da API Gemini:", errorData);
+      console.error("❌ Erro Gemini:", errorData);
 
       return res.status(500).json({
-        error: "Erro ao gerar análise com IA",
+        error: "Erro ao gerar resposta da IA",
         details: errorData,
       });
     }
 
     const data = await response.json();
-
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!text) {
-      console.error("❌ Resposta inválida da Gemini:", data);
+      console.error("❌ Resposta inválida:", data);
       return res.status(500).json({
         error: "Resposta inválida da IA",
       });
