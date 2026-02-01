@@ -3,12 +3,13 @@ export const config = {
 };
 
 export default async function handler(req, res) {
+
+  console.log("🔍 DEBUG ENV KEYS:", Object.keys(process.env));
+  console.log("🔑 DEBUG OPENAI_API_KEY existe?", !!process.env.OPENAI_API_KEY);
   // --- CORS ---
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  console.log("ENV KEYS:", Object.keys(process.env));
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
