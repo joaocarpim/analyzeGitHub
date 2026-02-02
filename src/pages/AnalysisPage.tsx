@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { ArrowLeft, Sparkles, X, TrendingUp } from "lucide-react";
+import { ArrowLeft, Sparkles, X, TrendingUp, Users } from "lucide-react";
 
 import {
   LineChart,
@@ -32,6 +32,8 @@ type EvolutionPoint = {
   score: number;
 };
 
+type ViewMode = "followers" | "following" | "mutual";
+
 /* ================= PROMPT ================= */
 
 const RECRUITER_CRUEL_PROMPT = `
@@ -59,15 +61,16 @@ export const AnalysisPage = () => {
   const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
 
-  /* --------- GUARD (Vercel safe) --------- */
   if (!username) {
     navigate("/");
     return null;
   }
 
-  /* --------- UI STATE --------- */
+  /* ================= STATES ================= */
 
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState(false);
+
   const [aiMode, setAiMode] = useState<AIMode>("friendly");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
@@ -81,7 +84,9 @@ export const AnalysisPage = () => {
   const [showEvolution, setShowEvolution] = useState(false);
   const [evolutionData, setEvolutionData] = useState<EvolutionPoint[]>([]);
 
-  /* --------- DATA --------- */
+  const [viewMode, setViewMode] = useState<ViewMode>("followers");
+
+  /* ================= DATA ================= */
 
   const {
     data: profile,
@@ -96,10 +101,10 @@ export const AnalysisPage = () => {
     !!profile,
   );
 
-  /* --------- NON FOLLOWERS --------- */
+  /* ================= COMPUTED ================= */
 
   const nonFollowersCount = useMemo(() => {
-    if (!relations?.followers || !relations?.following) return 0;
+    if (!relations) return 0;
 
     const followers = new Set(
       relations.followers.map((u) => u.login.toLowerCase()),
@@ -110,7 +115,20 @@ export const AnalysisPage = () => {
     ).length;
   }, [relations]);
 
-  /* --------- EVOLUTION STORAGE --------- */
+  const usersToRender = useMemo(() => {
+    if (!relations) return [];
+
+    if (viewMode === "followers") return relations.followers;
+    if (viewMode === "following") return relations.following;
+
+    return relations.followers.filter((f) =>
+      relations.following.some(
+        (fo) => fo.login.toLowerCase() === f.login.toLowerCase(),
+      ),
+    );
+  }, [relations, viewMode]);
+
+  /* ================= STORAGE ================= */
 
   useEffect(() => {
     if (!profile) return;
@@ -126,7 +144,7 @@ export const AnalysisPage = () => {
     return match ? Number(match[1]) : null;
   };
 
-  /* --------- IA: NORMAL --------- */
+  /* ================= IA ================= */
 
   const handleGenerateFeedback = async () => {
     if (!profile || !repos) return;
@@ -149,8 +167,6 @@ export const AnalysisPage = () => {
     }
   };
 
-  /* --------- IA: SCORE + ROADMAP --------- */
-
   const handleEmployabilityAnalysis = async () => {
     if (!profile || !repos) return;
 
@@ -172,12 +188,14 @@ export const AnalysisPage = () => {
       if (score !== null) {
         setEmployabilityScore(score);
 
-        const point: EvolutionPoint = {
-          date: new Date().toLocaleDateString("pt-BR"),
-          score,
-        };
+        const updated = [
+          ...evolutionData,
+          {
+            date: new Date().toLocaleDateString("pt-BR"),
+            score,
+          },
+        ];
 
-        const updated = [...evolutionData, point];
         setEvolutionData(updated);
 
         localStorage.setItem(
@@ -185,18 +203,16 @@ export const AnalysisPage = () => {
           JSON.stringify(updated),
         );
       }
-    } catch {
-      setRoadmap("Erro ao gerar análise de empregabilidade.");
+
+      setShowScoreModal(true);
     } finally {
       setLoadingExtraAI(false);
     }
   };
 
-  /* --------- STATES --------- */
+  /* ================= STATES ================= */
 
-  if (loadingProfile || loadingRelations) {
-    return <SkeletonLoader />;
-  }
+  if (loadingProfile || loadingRelations) return <SkeletonLoader />;
 
   if (error || !profile) {
     return (
@@ -211,20 +227,25 @@ export const AnalysisPage = () => {
 
   return (
     <div className="analysis-container">
-      <button onClick={() => navigate("/")} className="user-link">
+      {/* ===== VOLTAR ===== */}
+      <button className="btn btn-link" onClick={() => navigate("/")}>
         <ArrowLeft size={16} /> Voltar
       </button>
 
-      {/* -------- PROFILE -------- */}
+      {/* ===== PERFIL ===== */}
       <div className="profile-summary">
-        <img src={profile.avatar_url} alt={profile.login} />
+        <img
+          src={profile.avatar_url}
+          alt={profile.login}
+          className="profile-avatar"
+        />
         <div>
-          <h2>{profile.name || profile.login}</h2>
-          <p>@{profile.login}</p>
+          <h2 className="profile-name">{profile.name || profile.login}</h2>
+          <p className="profile-username">@{profile.login}</p>
         </div>
       </div>
 
-      {/* -------- STATS -------- */}
+      {/* ===== STATS ===== */}
       <div className="stats-grid">
         <StatCard label="Seguidores" value={profile.followers} />
         <StatCard label="Seguindo" value={profile.following} />
@@ -235,7 +256,7 @@ export const AnalysisPage = () => {
         />
       </div>
 
-      {/* -------- ACTIONS -------- */}
+      {/* ===== ACTIONS ===== */}
       <div className="actions-row">
         <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
           <Sparkles size={18} /> Análise com IA
@@ -259,22 +280,8 @@ export const AnalysisPage = () => {
         )}
       </div>
 
-      {/* -------- SCORE -------- */}
-      {employabilityScore !== null && (
-        <div className="score-badge">
-          Empregabilidade: {employabilityScore}/10
-        </div>
-      )}
-
-      {/* -------- ROADMAP -------- */}
-      {roadmap && (
-        <div className="ai-result-box animate-fade-in">
-          <ReactMarkdown>{roadmap}</ReactMarkdown>
-        </div>
-      )}
-
-      {/* -------- GRAPH -------- */}
-      {showEvolution && evolutionData.length > 0 && (
+      {/* ===== GRAPH ===== */}
+      {showEvolution && (
         <div className="chart-wrapper">
           <ResponsiveContainer>
             <LineChart data={evolutionData}>
@@ -292,31 +299,60 @@ export const AnalysisPage = () => {
         </div>
       )}
 
-      {/* -------- FOLLOWERS -------- */}
-      {relations?.followers && (
-        <>
-          <h3 className="section-title">Seguidores</h3>
-          <div className="users-grid">
-            {relations.followers.map((u) => (
-              <UserCard key={u.login} user={u} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* ===== USERS FLOW ===== */}
+      <div className="section-header">
+        <Users size={18} />
+        <h3>Conexões</h3>
+      </div>
 
-      {/* -------- IA MODAL -------- */}
+      <div className="btn-group">
+        <button
+          className={viewMode === "followers" ? "active" : ""}
+          onClick={() => setViewMode("followers")}
+        >
+          Seguidores
+        </button>
+        <button
+          className={viewMode === "following" ? "active" : ""}
+          onClick={() => setViewMode("following")}
+        >
+          Seguindo
+        </button>
+        <button
+          className={viewMode === "mutual" ? "active" : ""}
+          onClick={() => setViewMode("mutual")}
+        >
+          Mútuos
+        </button>
+      </div>
+
+      <div className="users-grid">
+        {usersToRender.map((u) => (
+          <UserCard key={u.login} user={u} />
+        ))}
+      </div>
+
+      {/* ===== IA MODAL ===== */}
       {showAIModal && (
         <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
           <div
             className="ai-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2>Análise de Perfil com IA 🤖</h2>
+            <h2>Análise de Perfil com IA</h2>
 
             <div className="ai-options">
-              <button onClick={() => setAiMode("friendly")}>🥰 Amigável</button>
-              <button onClick={() => setAiMode("liar")}>🤥 Mentiroso</button>
-              <button onClick={() => setAiMode("roast")}>🔥 Recrutador</button>
+              {(["friendly", "liar", "roast"] as AIMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  className={aiMode === mode ? "active" : ""}
+                  onClick={() => setAiMode(mode)}
+                >
+                  {mode === "friendly" && "🥰 Amigável"}
+                  {mode === "liar" && "🤥 Mentiroso"}
+                  {mode === "roast" && "🔥 Recrutador"}
+                </button>
+              ))}
             </div>
 
             <button
@@ -336,6 +372,37 @@ export const AnalysisPage = () => {
             <button
               className="modal-close"
               onClick={() => setShowAIModal(false)}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== SCORE MODAL ===== */}
+      {showScoreModal && (
+        <div className="modal-overlay" onClick={() => setShowScoreModal(false)}>
+          <div
+            className="ai-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2>📊 Empregabilidade</h2>
+
+            {employabilityScore !== null && (
+              <div className="score-badge">
+                Empregabilidade: {employabilityScore}/10
+              </div>
+            )}
+
+            {roadmap && (
+              <div className="ai-result-box">
+                <ReactMarkdown>{roadmap}</ReactMarkdown>
+              </div>
+            )}
+
+            <button
+              className="modal-close"
+              onClick={() => setShowScoreModal(false)}
             >
               <X size={18} />
             </button>
