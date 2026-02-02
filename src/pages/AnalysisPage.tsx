@@ -23,15 +23,16 @@ import type { AIMode } from "../types";
 
 import { StatCard } from "../components/ui/StatCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
+import { UserCard } from "../components/ui/UserCard";
 
-/* ------------------ TYPES ------------------ */
+/* ================= TYPES ================= */
 
 type EvolutionPoint = {
   date: string;
   score: number;
 };
 
-/* ------------------ PROMPT ------------------ */
+/* ================= PROMPT ================= */
 
 const RECRUITER_CRUEL_PROMPT = `
 Você é um recrutador técnico EXTREMAMENTE exigente.
@@ -52,36 +53,35 @@ Roadmap Personalizado (6 meses):
 Seja crítico, direto e realista. Não seja educado.
 `;
 
-/* ------------------ COMPONENT ------------------ */
+/* ================= COMPONENT ================= */
 
 export const AnalysisPage = () => {
   const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
 
-  /* ---------- GUARD (CRÍTICO PARA VERCEL) ---------- */
-
+  /* --------- GUARD (Vercel safe) --------- */
   if (!username) {
     navigate("/");
     return null;
   }
 
-  /* ---------- UI STATE ---------- */
+  /* --------- UI STATE --------- */
 
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiMode, setAiMode] = useState<AIMode>("friendly");
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<string>("");
+  const [aiResult, setAiResult] = useState("");
 
   const [loadingExtraAI, setLoadingExtraAI] = useState(false);
   const [employabilityScore, setEmployabilityScore] = useState<number | null>(
     null,
   );
-  const [roadmap, setRoadmap] = useState<string>("");
+  const [roadmap, setRoadmap] = useState("");
 
   const [showEvolution, setShowEvolution] = useState(false);
   const [evolutionData, setEvolutionData] = useState<EvolutionPoint[]>([]);
 
-  /* ---------- DATA ---------- */
+  /* --------- DATA --------- */
 
   const {
     data: profile,
@@ -96,7 +96,7 @@ export const AnalysisPage = () => {
     !!profile,
   );
 
-  /* ---------- FOLLOW ANALYSIS ---------- */
+  /* --------- NON FOLLOWERS --------- */
 
   const nonFollowersCount = useMemo(() => {
     if (!relations?.followers || !relations?.following) return 0;
@@ -110,14 +110,14 @@ export const AnalysisPage = () => {
     ).length;
   }, [relations]);
 
-  /* ---------- EVOLUTION STORAGE ---------- */
+  /* --------- EVOLUTION STORAGE --------- */
 
   useEffect(() => {
     if (!profile) return;
 
     const saved = localStorage.getItem(`evolution-${profile.login}`);
     if (saved) {
-      setEvolutionData(JSON.parse(saved) as EvolutionPoint[]);
+      setEvolutionData(JSON.parse(saved));
     }
   }, [profile]);
 
@@ -126,7 +126,7 @@ export const AnalysisPage = () => {
     return match ? Number(match[1]) : null;
   };
 
-  /* ---------- IA: NORMAL ---------- */
+  /* --------- IA: NORMAL --------- */
 
   const handleGenerateFeedback = async () => {
     if (!profile || !repos) return;
@@ -135,7 +135,7 @@ export const AnalysisPage = () => {
     setAiResult("");
 
     try {
-      const result: string = await aiService.generateFeedback({
+      const result = await aiService.generateFeedback({
         profile,
         repos,
         mode: aiMode,
@@ -149,17 +149,17 @@ export const AnalysisPage = () => {
     }
   };
 
-  /* ---------- IA: SCORE + ROADMAP ---------- */
+  /* --------- IA: SCORE + ROADMAP --------- */
 
   const handleEmployabilityAnalysis = async () => {
     if (!profile || !repos) return;
 
     setLoadingExtraAI(true);
-    setRoadmap("");
     setEmployabilityScore(null);
+    setRoadmap("");
 
     try {
-      const result: string = await aiService.generateFeedback({
+      const result = await aiService.generateFeedback({
         profile,
         repos,
         mode: "roast",
@@ -192,11 +192,13 @@ export const AnalysisPage = () => {
     }
   };
 
-  /* ---------- STATES ---------- */
+  /* --------- STATES --------- */
 
-  if (loadingProfile || loadingRelations) return <SkeletonLoader />;
+  if (loadingProfile || loadingRelations) {
+    return <SkeletonLoader />;
+  }
 
-  if (error) {
+  if (error || !profile) {
     return (
       <div className="error-state">
         <h3>Erro ao buscar dados</h3>
@@ -205,7 +207,7 @@ export const AnalysisPage = () => {
     );
   }
 
-  /* ---------- UI ---------- */
+  /* ================= UI ================= */
 
   return (
     <div className="analysis-container">
@@ -213,91 +215,96 @@ export const AnalysisPage = () => {
         <ArrowLeft size={16} /> Voltar
       </button>
 
-      {profile && (
+      {/* -------- PROFILE -------- */}
+      <div className="profile-summary">
+        <img src={profile.avatar_url} alt={profile.login} />
+        <div>
+          <h2>{profile.name || profile.login}</h2>
+          <p>@{profile.login}</p>
+        </div>
+      </div>
+
+      {/* -------- STATS -------- */}
+      <div className="stats-grid">
+        <StatCard label="Seguidores" value={profile.followers} />
+        <StatCard label="Seguindo" value={profile.following} />
+        <StatCard
+          label="Não seguem de volta"
+          value={nonFollowersCount}
+          highlight
+        />
+      </div>
+
+      {/* -------- ACTIONS -------- */}
+      <div className="actions-row">
+        <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
+          <Sparkles size={18} /> Análise com IA
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          onClick={handleEmployabilityAnalysis}
+          disabled={loadingExtraAI}
+        >
+          🧠 Score & Roadmap
+        </button>
+
+        {evolutionData.length > 0 && (
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowEvolution((v) => !v)}
+          >
+            <TrendingUp size={16} /> Evolução
+          </button>
+        )}
+      </div>
+
+      {/* -------- SCORE -------- */}
+      {employabilityScore !== null && (
+        <div className="score-badge">
+          Empregabilidade: {employabilityScore}/10
+        </div>
+      )}
+
+      {/* -------- ROADMAP -------- */}
+      {roadmap && (
+        <div className="ai-result-box animate-fade-in">
+          <ReactMarkdown>{roadmap}</ReactMarkdown>
+        </div>
+      )}
+
+      {/* -------- GRAPH -------- */}
+      {showEvolution && evolutionData.length > 0 && (
+        <div className="chart-wrapper">
+          <ResponsiveContainer>
+            <LineChart data={evolutionData}>
+              <XAxis dataKey="date" />
+              <YAxis domain={[0, 10]} />
+              <Tooltip />
+              <Line
+                dataKey="score"
+                stroke="var(--accent-primary)"
+                strokeWidth={3}
+                dot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* -------- FOLLOWERS -------- */}
+      {relations?.followers && (
         <>
-          <div className="profile-summary">
-            <img src={profile.avatar_url} alt={profile.login} />
-            <div>
-              <h2>{profile.name || profile.login}</h2>
-              <p>@{profile.login}</p>
-            </div>
+          <h3 className="section-title">Seguidores</h3>
+          <div className="users-grid">
+            {relations.followers.map((u) => (
+              <UserCard key={u.login} user={u} />
+            ))}
           </div>
-
-          <div className="stats-grid">
-            <StatCard label="Seguidores" value={profile.followers} />
-            <StatCard label="Seguindo" value={profile.following} />
-            <StatCard
-              label="Não seguem de volta"
-              value={nonFollowersCount}
-              highlight
-            />
-          </div>
-
-          {/* ---------- ACTION BUTTONS ---------- */}
-
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
-              <Sparkles size={18} /> Análise com IA
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={handleEmployabilityAnalysis}
-              disabled={loadingExtraAI}
-            >
-              🧠 Score & Roadmap
-            </button>
-
-            {evolutionData.length > 0 && (
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowEvolution((v) => !v)}
-              >
-                <TrendingUp size={16} /> Evolução
-              </button>
-            )}
-          </div>
-
-          {/* ---------- SCORE BADGE ---------- */}
-
-          {employabilityScore !== null && (
-            <div className="score-badge">
-              Empregabilidade: {employabilityScore}/10
-            </div>
-          )}
-
-          {/* ---------- ROADMAP ---------- */}
-
-          {roadmap && (
-            <div className="ai-result-box animate-fade-in">
-              <ReactMarkdown>{roadmap}</ReactMarkdown>
-            </div>
-          )}
-
-          {/* ---------- GRAPH ---------- */}
-
-          {showEvolution && evolutionData.length > 0 && (
-            <div style={{ width: "100%", height: 260, marginTop: 24 }}>
-              <ResponsiveContainer>
-                <LineChart data={evolutionData}>
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, 10]} />
-                  <Tooltip />
-                  <Line
-                    dataKey="score"
-                    stroke="#a78bfa"
-                    strokeWidth={3}
-                    dot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
         </>
       )}
 
-      {/* ---------- IA MODAL ---------- */}
-
+      {/* -------- IA MODAL -------- */}
       {showAIModal && (
         <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
           <div
