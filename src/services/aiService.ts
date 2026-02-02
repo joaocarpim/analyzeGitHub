@@ -14,26 +14,27 @@ export const aiService = {
   }: AIRequest): Promise<string> => {
     const profileData = {
       name: profile.name,
+      login: profile.login,
       bio: profile.bio,
-      stats: {
-        followers: profile.followers,
-        following: profile.following,
-        repos: profile.public_repos,
-      },
+      followers: profile.followers,
+      following: profile.following,
+      public_repos: profile.public_repos,
       location: profile.location,
       company: profile.company,
       created_at: profile.created_at,
-      recent_repos: repos.map((r) => ({
+      repos: repos.map((r) => ({
         name: r.name,
-        lang: r.language,
-        desc: r.description,
+        language: r.language,
         stars: r.stargazers_count,
+        description: r.description,
       })),
     };
 
     const response = await fetch("/api/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         profileData,
         aiMode: mode,
@@ -41,8 +42,8 @@ export const aiService = {
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      throw new Error("SERVER_ERROR: " + err);
+      const text = await response.text();
+      throw new Error(`SERVER_ERROR: ${text}`);
     }
 
     const data = await response.json();

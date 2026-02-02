@@ -17,46 +17,64 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log("🔍 DEBUG ENV KEYS:", Object.keys(process.env));
-    console.log("🔑 DEBUG GROQ_API_KEY existe?", !!process.env.GROQ_API_KEY);
-
+    // ===============================
+    // 🔑 API KEY
+    // ===============================
     const apiKey = process.env.GROQ_API_KEY;
+
+    console.log("🔍 DEBUG ENV KEYS:", Object.keys(process.env));
+    console.log("🔑 DEBUG GROQ_API_KEY existe?", !!apiKey);
 
     if (!apiKey) {
       console.error("❌ GROQ_API_KEY não configurada");
       return res.status(500).json({ error: "API Key não configurada" });
     }
 
+    // ===============================
+    // 📦 BODY
+    // ===============================
     const { profileData, aiMode } = req.body;
 
     if (!profileData) {
-      return res.status(400).json({ error: "Dados do perfil ausentes" });
+      return res.status(400).json({ error: "profileData ausente" });
     }
 
-    let personality = "Aja como um analista técnico profissional.";
+    // ===============================
+    // 🧠 PERSONALIDADE
+    // ===============================
+    let personality = "Seja um analista técnico e honesto.";
     if (aiMode === "friendly")
-      personality = "Seja um mentor amigável e encorajador, use emojis 🥰.";
+      personality = "Seja um mentor amigável e motivador, use emojis.";
     if (aiMode === "liar")
       personality =
-        "Seja um influencer exagerado, elogie demais e seja claramente mentiroso 🤥.";
+        "Seja um influencer exagerado, otimista e um pouco mentiroso.";
     if (aiMode === "roast")
-      personality =
-        "Seja um recrutador brutal, direto e sarcástico, sem piedade 🔥.";
+      personality = "Seja um recrutador brutal, direto e sarcástico, sem dó.";
 
+    // ===============================
+    // 📝 PROMPT
+    // ===============================
     const prompt = `
-Analise o seguinte perfil público do GitHub (JSON):
+Você é um especialista em GitHub, carreira em tecnologia e análise de perfil.
 
-${JSON.stringify(profileData, null, 2)}
-
-Instrução de personalidade:
 ${personality}
 
-Regras:
-- Responda em Português do Brasil
-- Use Markdown
-- Dê feedback técnico, carreira e presença no GitHub
+Analise os dados abaixo (JSON público do GitHub) e entregue:
+- Pontos fortes
+- Pontos fracos
+- Sugestões práticas de melhoria
+- Impressão geral do perfil
+
+Dados do perfil:
+${JSON.stringify(profileData, null, 2)}
+
+Responda em Português do Brasil.
+Use Markdown.
 `;
 
+    // ===============================
+    // 🚀 GROQ API
+    // ===============================
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -66,7 +84,7 @@ Regras:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama3-70b-8192",
+          model: "llama-3.1-70b-versatile", // ✅ MODELO ATIVO
           messages: [
             {
               role: "user",
@@ -79,20 +97,23 @@ Regras:
     );
 
     if (!groqResponse.ok) {
-      const err = await groqResponse.json();
-      console.error("❌ Erro Groq:", err);
-      return res.status(500).json({ error: "Erro na API Groq", details: err });
+      const errorData = await groqResponse.json();
+      console.error("❌ Erro Groq:", errorData);
+      return res.status(500).json({
+        error: "Erro na API Groq",
+        details: errorData,
+      });
     }
 
     const data = await groqResponse.json();
-    const text = data.choices[0].message.content;
+    const text = data.choices?.[0]?.message?.content;
 
     return res.status(200).json({ result: text });
   } catch (error) {
-    console.error("❌ Erro interno:", error);
+    console.error("❌ ERRO GERAL:", error);
     return res.status(500).json({
       error: "Erro interno do servidor",
-      details: error.message,
+      message: error.message,
     });
   }
 }
