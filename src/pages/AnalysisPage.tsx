@@ -6,7 +6,6 @@ import {
   UserMinus,
   Sparkles,
   X,
-  Lock,
   TrendingUp,
 } from "lucide-react";
 
