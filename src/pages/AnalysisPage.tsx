@@ -55,21 +55,28 @@ Seja crítico, direto e realista. Não seja educado.
 /* ------------------ COMPONENT ------------------ */
 
 export const AnalysisPage = () => {
-  const { username } = useParams<{ username: string }>();
+  const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
+
+  /* ---------- GUARD (CRÍTICO PARA VERCEL) ---------- */
+
+  if (!username) {
+    navigate("/");
+    return null;
+  }
 
   /* ---------- UI STATE ---------- */
 
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiMode, setAiMode] = useState<AIMode>("friendly");
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState("");
+  const [aiResult, setAiResult] = useState<string>("");
 
   const [loadingExtraAI, setLoadingExtraAI] = useState(false);
   const [employabilityScore, setEmployabilityScore] = useState<number | null>(
     null,
   );
-  const [roadmap, setRoadmap] = useState("");
+  const [roadmap, setRoadmap] = useState<string>("");
 
   const [showEvolution, setShowEvolution] = useState(false);
   const [evolutionData, setEvolutionData] = useState<EvolutionPoint[]>([]);
@@ -80,19 +87,19 @@ export const AnalysisPage = () => {
     data: profile,
     isLoading: loadingProfile,
     error,
-  } = useGithubProfile(username!);
+  } = useGithubProfile(username);
 
-  const { data: repos } = useGithubRepos(username!);
+  const { data: repos } = useGithubRepos(username);
 
   const { data: relations, isLoading: loadingRelations } = useGithubConnections(
-    username!,
+    username,
     !!profile,
   );
 
   /* ---------- FOLLOW ANALYSIS ---------- */
 
   const nonFollowersCount = useMemo(() => {
-    if (!relations) return 0;
+    if (!relations?.followers || !relations?.following) return 0;
 
     const followers = new Set(
       relations.followers.map((u) => u.login.toLowerCase()),
@@ -107,8 +114,11 @@ export const AnalysisPage = () => {
 
   useEffect(() => {
     if (!profile) return;
+
     const saved = localStorage.getItem(`evolution-${profile.login}`);
-    if (saved) setEvolutionData(JSON.parse(saved));
+    if (saved) {
+      setEvolutionData(JSON.parse(saved) as EvolutionPoint[]);
+    }
   }, [profile]);
 
   const extractScore = (text: string): number | null => {
@@ -125,13 +135,14 @@ export const AnalysisPage = () => {
     setAiResult("");
 
     try {
-      const result = await aiService.generateFeedback({
+      const result: string = await aiService.generateFeedback({
         profile,
         repos,
         mode: aiMode,
       });
+
       setAiResult(result);
-    } catch (err: any) {
+    } catch {
       setAiResult("Erro ao gerar análise.");
     } finally {
       setAiLoading(false);
@@ -148,7 +159,7 @@ export const AnalysisPage = () => {
     setEmployabilityScore(null);
 
     try {
-      const result = await aiService.generateFeedback({
+      const result: string = await aiService.generateFeedback({
         profile,
         repos,
         mode: "roast",
