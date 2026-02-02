@@ -42,6 +42,10 @@ export const aiService = {
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error("Limite temporário atingido. Aguarde alguns segundos.");
+      }
+
       const text = await response.text();
       throw new Error(`SERVER_ERROR: ${text}`);
     }

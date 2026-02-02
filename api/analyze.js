@@ -2,8 +2,13 @@ export const config = {
   maxDuration: 60,
 };
 
+// rate limit simples (memória)
+let lastRequestTime = 0;
+
 export default async function handler(req, res) {
-  // CORS
+  // ===============================
+  // 🌐 CORS
+  // ===============================
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -18,11 +23,21 @@ export default async function handler(req, res) {
 
   try {
     // ===============================
+    // ⏱️ RATE LIMIT (3s)
+    // ===============================
+    const now = Date.now();
+    if (now - lastRequestTime < 3000) {
+      return res.status(429).json({
+        error: "Aguarde alguns segundos antes de gerar nova análise.",
+      });
+    }
+    lastRequestTime = now;
+
+    // ===============================
     // 🔑 API KEY
     // ===============================
     const apiKey = process.env.GROQ_API_KEY;
 
-    console.log("🔍 DEBUG ENV KEYS:", Object.keys(process.env));
     console.log("🔑 DEBUG GROQ_API_KEY existe?", !!apiKey);
 
     if (!apiKey) {
@@ -42,28 +57,30 @@ export default async function handler(req, res) {
     // ===============================
     // 🧠 PERSONALIDADE
     // ===============================
-    let personality = "Seja um analista técnico e honesto.";
+    let personality = "Seja um analista técnico, direto e profissional.";
     if (aiMode === "friendly")
-      personality = "Seja um mentor amigável e motivador, use emojis.";
+      personality = "Seja um mentor amigável, motivador e use emojis.";
     if (aiMode === "liar")
       personality =
-        "Seja um influencer exagerado, otimista e um pouco mentiroso.";
+        "Seja um influencer exagerado, extremamente otimista e teatral.";
     if (aiMode === "roast")
-      personality = "Seja um recrutador brutal, direto e sarcástico, sem dó.";
+      personality = "Seja um recrutador brutal, sarcástico e sem paciência.";
 
     // ===============================
     // 📝 PROMPT
     // ===============================
     const prompt = `
-Você é um especialista em GitHub, carreira em tecnologia e análise de perfil.
+Você é um especialista em GitHub, carreira em tecnologia e análise de perfis públicos.
 
 ${personality}
 
 Analise os dados abaixo (JSON público do GitHub) e entregue:
-- Pontos fortes
-- Pontos fracos
-- Sugestões práticas de melhoria
-- Impressão geral do perfil
+
+1. Resumo geral do perfil
+2. Pontos fortes
+3. Pontos fracos
+4. O que melhoraria para crescer profissionalmente
+5. Impressão final (curta)
 
 Dados do perfil:
 ${JSON.stringify(profileData, null, 2)}
@@ -84,7 +101,7 @@ Use Markdown.
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.1-70b-versatile", // ✅ MODELO ATIVO
+          model: "llama-3.1-8b-instant", // ✅ MODELO ATIVO E GRÁTIS
           messages: [
             {
               role: "user",
