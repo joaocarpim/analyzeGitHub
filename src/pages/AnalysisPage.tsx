@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { ArrowLeft, UserMinus, Sparkles, X, TrendingUp } from "lucide-react";
+import { ArrowLeft, Sparkles, X, TrendingUp } from "lucide-react";
 
 import {
   LineChart,
@@ -19,9 +19,8 @@ import {
 } from "../hooks/useGithubData";
 
 import { aiService } from "../services/aiService";
-import type { AnalysisTab, AIMode } from "../types";
+import type { AIMode } from "../types";
 
-import { UserCard } from "../components/ui/UserCard";
 import { StatCard } from "../components/ui/StatCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 
@@ -32,7 +31,7 @@ type EvolutionPoint = {
   score: number;
 };
 
-/* ------------------ PROMPT FINAL ------------------ */
+/* ------------------ PROMPT ------------------ */
 
 const RECRUITER_CRUEL_PROMPT = `
 Você é um recrutador técnico EXTREMAMENTE exigente.
@@ -60,9 +59,6 @@ export const AnalysisPage = () => {
   const navigate = useNavigate();
 
   /* ---------- UI STATE ---------- */
-
-  const [activeTab, setActiveTab] = useState<AnalysisTab>("nonFollowers");
-  const [filterText, setFilterText] = useState("");
 
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiMode, setAiMode] = useState<AIMode>("friendly");
@@ -95,36 +91,17 @@ export const AnalysisPage = () => {
 
   /* ---------- FOLLOW ANALYSIS ---------- */
 
-  const analyzedData = useMemo(() => {
-    if (!relations) return { nonFollowers: [], fans: [], mutuals: [] };
+  const nonFollowersCount = useMemo(() => {
+    if (!relations) return 0;
 
-    const followersSet = new Set(
+    const followers = new Set(
       relations.followers.map((u) => u.login.toLowerCase()),
     );
-    const followingSet = new Set(
-      relations.following.map((u) => u.login.toLowerCase()),
-    );
 
-    return {
-      nonFollowers: relations.following.filter(
-        (u) => !followersSet.has(u.login.toLowerCase()),
-      ),
-      fans: relations.followers.filter(
-        (u) => !followingSet.has(u.login.toLowerCase()),
-      ),
-      mutuals: relations.following.filter((u) =>
-        followersSet.has(u.login.toLowerCase()),
-      ),
-    };
+    return relations.following.filter(
+      (u) => !followers.has(u.login.toLowerCase()),
+    ).length;
   }, [relations]);
-
-  const displayedUsers = useMemo(() => {
-    const list = analyzedData[activeTab];
-    if (!filterText) return list;
-    return list.filter((u) =>
-      u.login.toLowerCase().includes(filterText.toLowerCase()),
-    );
-  }, [analyzedData, activeTab, filterText]);
 
   /* ---------- EVOLUTION STORAGE ---------- */
 
@@ -139,7 +116,7 @@ export const AnalysisPage = () => {
     return match ? Number(match[1]) : null;
   };
 
-  /* ---------- IA: NORMAL ANALYSIS ---------- */
+  /* ---------- IA: NORMAL ---------- */
 
   const handleGenerateFeedback = async () => {
     if (!profile || !repos) return;
@@ -153,16 +130,15 @@ export const AnalysisPage = () => {
         repos,
         mode: aiMode,
       });
-
       setAiResult(result);
     } catch (err: any) {
-      setAiResult(`Erro técnico: ${err.message}`);
+      setAiResult("Erro ao gerar análise.");
     } finally {
       setAiLoading(false);
     }
   };
 
-  /* ---------- IA: EMPLOYABILITY + ROADMAP ---------- */
+  /* ---------- IA: SCORE + ROADMAP ---------- */
 
   const handleEmployabilityAnalysis = async () => {
     if (!profile || !repos) return;
@@ -198,7 +174,7 @@ export const AnalysisPage = () => {
           JSON.stringify(updated),
         );
       }
-    } catch (err: any) {
+    } catch {
       setRoadmap("Erro ao gerar análise de empregabilidade.");
     } finally {
       setLoadingExtraAI(false);
@@ -241,12 +217,12 @@ export const AnalysisPage = () => {
             <StatCard label="Seguindo" value={profile.following} />
             <StatCard
               label="Não seguem de volta"
-              value={analyzedData.nonFollowers.length}
+              value={nonFollowersCount}
               highlight
             />
           </div>
 
-          {/* ---------- BUTTONS SIDE BY SIDE ---------- */}
+          {/* ---------- ACTION BUTTONS ---------- */}
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
@@ -260,47 +236,37 @@ export const AnalysisPage = () => {
             >
               🧠 Score & Roadmap
             </button>
+
+            {evolutionData.length > 0 && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowEvolution((v) => !v)}
+              >
+                <TrendingUp size={16} /> Evolução
+              </button>
+            )}
           </div>
 
-          {/* ---------- BADGE ---------- */}
+          {/* ---------- SCORE BADGE ---------- */}
 
           {employabilityScore !== null && (
-            <div
-              style={{
-                marginTop: 12,
-                padding: "8px 14px",
-                borderRadius: 999,
-                background: "linear-gradient(135deg,#a78bfa,#ec4899)",
-                color: "#fff",
-                fontWeight: 600,
-                width: "fit-content",
-              }}
-            >
+            <div className="score-badge">
               Empregabilidade: {employabilityScore}/10
             </div>
           )}
+
+          {/* ---------- ROADMAP ---------- */}
 
           {roadmap && (
             <div className="ai-result-box animate-fade-in">
               <ReactMarkdown>{roadmap}</ReactMarkdown>
             </div>
           )}
-        </>
-      )}
 
-      {/* ---------- EVOLUTION GRAPH ---------- */}
+          {/* ---------- GRAPH ---------- */}
 
-      {evolutionData.length > 0 && (
-        <>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowEvolution((v) => !v)}
-          >
-            <TrendingUp size={16} /> Evolução
-          </button>
-
-          {showEvolution && (
-            <div style={{ width: "100%", height: 260 }}>
+          {showEvolution && evolutionData.length > 0 && (
+            <div style={{ width: "100%", height: 260, marginTop: 24 }}>
               <ResponsiveContainer>
                 <LineChart data={evolutionData}>
                   <XAxis dataKey="date" />

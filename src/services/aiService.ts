@@ -4,6 +4,7 @@ interface AIRequest {
   profile: UserProfile;
   repos: Repo[];
   mode: AIMode;
+  customPrompt?: string; // ✅ ADICIONADO
 }
 
 export const aiService = {
@@ -11,6 +12,7 @@ export const aiService = {
     profile,
     repos,
     mode,
+    customPrompt,
   }: AIRequest): Promise<string> => {
     const profileData = {
       name: profile.name,
@@ -38,6 +40,7 @@ export const aiService = {
       body: JSON.stringify({
         profileData,
         aiMode: mode,
+        customPrompt, // ✅ agora existe
       }),
     });
 
