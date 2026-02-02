@@ -34,10 +34,16 @@ export const aiService = {
     const response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profileData, aiMode: mode }),
+      body: JSON.stringify({
+        profileData,
+        aiMode: mode,
+      }),
     });
 
-    if (!response.ok) throw new Error("SERVER_ERROR");
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error("SERVER_ERROR: " + err);
+    }
 
     const data = await response.json();
     return data.result;
