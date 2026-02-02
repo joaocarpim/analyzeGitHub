@@ -1,7 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { ArrowLeft, UserMinus, Sparkles, X, Lock } from "lucide-react";
+import {
+  ArrowLeft,
+  UserMinus,
+  Sparkles,
+  X,
+  Lock,
+  TrendingUp,
+} from "lucide-react";
+
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 import {
   useGithubProfile,
@@ -15,30 +31,44 @@ import { UserCard } from "../components/ui/UserCard";
 import { StatCard } from "../components/ui/StatCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 
+type EvolutionPoint = {
+  date: string;
+  score: number;
+};
+
 export const AnalysisPage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<AnalysisTab>("nonFollowers");
   const [filterText, setFilterText] = useState("");
+
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiMode, setAiMode] = useState<AIMode>("friendly");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
+
+  const [showEvolution, setShowEvolution] = useState(false);
+  const [evolutionData, setEvolutionData] = useState<EvolutionPoint[]>([]);
 
   const {
     data: profile,
     isLoading: loadingProfile,
     error,
   } = useGithubProfile(username!);
+
   const { data: repos } = useGithubRepos(username!);
+
   const { data: relations, isLoading: loadingRelations } = useGithubConnections(
     username!,
     !!profile,
   );
 
+  /* ------------------ ANÁLISE FOLLOWERS ------------------ */
+
   const analyzedData = useMemo(() => {
     if (!relations) return { nonFollowers: [], fans: [], mutuals: [] };
+
     const followersSet = new Set(
       relations.followers.map((u) => u.login.toLowerCase()),
     );
@@ -67,99 +97,86 @@ export const AnalysisPage = () => {
     );
   }, [analyzedData, activeTab, filterText]);
 
-  // --- ESTRUTURA DE LOGS PARA DEBUG ---
+  /* ------------------ SCORE EXTRACTION ------------------ */
+
+  const extractScore = (text: string): number | null => {
+    const match = text.match(/Score de Empregabilidade.*?(\d+(?:\.\d+)?)/i);
+    return match ? Number(match[1]) : null;
+  };
+
+  /* ------------------ LOAD EVOLUTION ------------------ */
+
+  useEffect(() => {
+    if (!profile) return;
+    const saved = localStorage.getItem(`evolution-${profile.login}`);
+    if (saved) setEvolutionData(JSON.parse(saved));
+  }, [profile]);
+
+  /* ------------------ IA HANDLER ------------------ */
+
   const handleGenerateFeedback = async () => {
-    console.group("🔍 DEBUG: Início da Geração de Feedback");
-
-    // 1. Verificar se os dados existem
-    if (!profile || !repos) {
-      console.error("❌ DEBUG 1: Dados incompletos", {
-        profile: !!profile,
-        repos: !!repos,
-      });
-      console.groupEnd();
-      return;
-    }
-
-    console.log("✅ DEBUG 1: Dados iniciais carregados", {
-      usuario: profile.login,
-      qtdRepos: repos.length,
-      modoSelecionado: aiMode,
-    });
+    if (!profile || !repos) return;
 
     setAiLoading(true);
     setAiResult("");
 
     try {
-      console.log("🚀 DEBUG 2: Chamando aiService.generateFeedback...");
-
-      // Aqui vamos ver o payload antes de enviar (se possível no service)
       const result = await aiService.generateFeedback({
         profile,
         repos,
         mode: aiMode,
       });
 
-      console.log("✅ DEBUG 3: Resposta recebida com sucesso:", result);
       setAiResult(result);
+
+      const score = extractScore(result);
+      if (score !== null) {
+        const point = {
+          date: new Date().toLocaleDateString("pt-BR"),
+          score,
+        };
+
+        const updated = [...evolutionData, point];
+        setEvolutionData(updated);
+
+        localStorage.setItem(
+          `evolution-${profile.login}`,
+          JSON.stringify(updated),
+        );
+      }
     } catch (err: any) {
-      // 2. Captura detalhada do erro
-      console.error("❌ DEBUG 4: Erro capturado no catch:", err);
-
-      if (err.message) console.error("Mensagem do erro:", err.message);
-
-      // Se for erro de rede/fetch, muitas vezes vem status
-      if (err.status) console.error("Status HTTP:", err.status);
-
-      setAiResult(
-        `**Erro Técnico:** ${err.message || "Falha desconhecida no servidor."}`,
-      );
+      setAiResult(`**Erro Técnico:** ${err.message || "Erro desconhecido"}`);
     } finally {
-      console.log("🏁 DEBUG 5: Finalizando loading (finally block)");
       setAiLoading(false);
-      console.groupEnd();
     }
   };
+
+  /* ------------------ STATES ------------------ */
 
   if (loadingProfile || loadingRelations) return <SkeletonLoader />;
 
   if (error) {
     return (
       <div className="error-state">
-        <h3 className="state-title">Erro ao buscar dados</h3>
-        <button onClick={() => navigate("/")} className="btn btn-primary">
-          Voltar
-        </button>
+        <h3>Erro ao buscar dados</h3>
+        <button onClick={() => navigate("/")}>Voltar</button>
       </div>
     );
   }
 
+  /* ------------------ UI ------------------ */
+
   return (
     <div className="analysis-container">
-      <button
-        onClick={() => navigate("/")}
-        className="user-link"
-        style={{
-          marginBottom: 20,
-          background: "none",
-          border: "none",
-          fontSize: 16,
-          cursor: "pointer",
-        }}
-      >
-        <ArrowLeft size={16} style={{ display: "inline", marginRight: 5 }} />{" "}
-        Voltar
+      <button onClick={() => navigate("/")} className="user-link">
+        <ArrowLeft size={16} /> Voltar
       </button>
 
       {profile && (
         <>
           <div className="profile-summary">
-            <img
-              src={profile.avatar_url}
-              alt={profile.login}
-              className="profile-summary-avatar"
-            />
-            <div className="profile-summary-info">
+            <img src={profile.avatar_url} alt={profile.login} />
+            <div>
               <h2>{profile.name || profile.login}</h2>
               <p>@{profile.login}</p>
             </div>
@@ -169,51 +186,47 @@ export const AnalysisPage = () => {
             <StatCard label="Seguidores" value={profile.followers} />
             <StatCard label="Seguindo" value={profile.following} />
             <StatCard
-              label="Não seguem volta"
+              label="Não seguem de volta"
               value={analyzedData.nonFollowers.length}
               highlight
             />
           </div>
 
-          <div className="ai-trigger-container">
-            <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
-              <Sparkles size={18} /> Gerar Feedback com IA
-            </button>
-          </div>
+          <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
+            <Sparkles size={18} /> Análise com IA
+          </button>
         </>
       )}
 
+      {/* ------------------ TABS ------------------ */}
+
       <div className="tabs-container">
         <button
-          className={`tab ${activeTab === "nonFollowers" ? "active" : ""}`}
+          className={activeTab === "nonFollowers" ? "active" : ""}
           onClick={() => setActiveTab("nonFollowers")}
         >
-          <UserMinus size={18} /> Não seguem de volta{" "}
-          <span className="badge">{analyzedData.nonFollowers.length}</span>
+          <UserMinus size={16} /> Não seguem
         </button>
         <button
-          className={`tab ${activeTab === "fans" ? "active" : ""}`}
+          className={activeTab === "fans" ? "active" : ""}
           onClick={() => setActiveTab("fans")}
         >
-          Fãs <span className="badge">{analyzedData.fans.length}</span>
+          Fãs
         </button>
         <button
-          className={`tab ${activeTab === "mutuals" ? "active" : ""}`}
+          className={activeTab === "mutuals" ? "active" : ""}
           onClick={() => setActiveTab("mutuals")}
         >
-          Mútuos <span className="badge">{analyzedData.mutuals.length}</span>
+          Mútuos
         </button>
       </div>
 
-      <div className="filter-section">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Filtrar..."
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-        />
-      </div>
+      <input
+        className="search-input"
+        placeholder="Filtrar..."
+        value={filterText}
+        onChange={(e) => setFilterText(e.target.value)}
+      />
 
       <div className="users-grid">
         {displayedUsers.map((user) => (
@@ -221,111 +234,73 @@ export const AnalysisPage = () => {
         ))}
       </div>
 
+      {/* ------------------ MODAL IA ------------------ */}
+
       {showAIModal && (
         <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
           <div
             className="ai-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="modal-header"
-              style={{
-                position: "relative",
-                background: "transparent",
-                padding: 0,
-                border: "none",
-              }}
+            <h2>Análise de Perfil com IA 🤖</h2>
+
+            <div className="ai-options">
+              <button onClick={() => setAiMode("friendly")}>🥰 Amigável</button>
+              <button onClick={() => setAiMode("liar")}>🤥 Mentiroso</button>
+              <button onClick={() => setAiMode("roast")}>
+                🔥 Recrutador Cruel
+              </button>
+            </div>
+
+            <button
+              className="btn btn-primary"
+              onClick={handleGenerateFeedback}
+              disabled={aiLoading}
             >
-              <h2>Análise de Perfil com IA 🤖</h2>
-              <button
-                className="modal-close"
-                style={{ top: -10, right: -10 }}
-                onClick={() => setShowAIModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
+              {aiLoading ? "Processando..." : "Gerar Análise"}
+            </button>
 
-            <div style={{ marginTop: 20 }}>
-              <div
-                style={{
-                  border: "1px solid rgba(139, 92, 246, 0.4)",
-                  background: "rgba(139, 92, 246, 0.1)",
-                  borderRadius: "12px",
-                  padding: "16px",
-                  marginBottom: "24px",
-                  textAlign: "left",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <Lock size={16} color="#a78bfa" />
-                  <span
-                    style={{
-                      color: "#a78bfa",
-                      fontWeight: "600",
-                      fontSize: "14px",
-                    }}
-                  >
-                    Privacidade de Dados
-                  </span>
-                </div>
-                <p
-                  style={{
-                    fontSize: "13px",
-                    color: "rgba(255, 255, 255, 0.8)",
-                    lineHeight: "1.5",
-                    margin: 0,
-                  }}
-                >
-                  A análise utiliza apenas os dados <strong>públicos</strong> do
-                  seu GitHub. Seus repositórios privados e informações sensíveis
-                  permanecem seguros e inacessíveis.
-                </p>
+            {aiResult && (
+              <div className="ai-result-box">
+                <ReactMarkdown>{aiResult}</ReactMarkdown>
               </div>
+            )}
 
-              <div className="ai-options">
+            {evolutionData.length > 0 && (
+              <>
                 <button
-                  className={`btn-option ${aiMode === "friendly" ? "selected friendly" : ""}`}
-                  onClick={() => setAiMode("friendly")}
+                  className="btn btn-secondary"
+                  onClick={() => setShowEvolution((v) => !v)}
                 >
-                  🥰 Amigável
+                  <TrendingUp size={16} /> Evolução de Empregabilidade
                 </button>
-                <button
-                  className={`btn-option ${aiMode === "liar" ? "selected liar" : ""}`}
-                  onClick={() => setAiMode("liar")}
-                >
-                  🤥 Mentiroso
-                </button>
-                <button
-                  className={`btn-option ${aiMode === "roast" ? "selected roast" : ""}`}
-                  onClick={() => setAiMode("roast")}
-                >
-                  🔥 Acorda pra vida
-                </button>
-              </div>
 
-              <button
-                className="btn btn-primary"
-                style={{ width: "100%" }}
-                onClick={handleGenerateFeedback}
-                disabled={aiLoading}
-              >
-                {aiLoading ? "Processando..." : "Gerar Análise"}
-              </button>
+                {showEvolution && (
+                  <div style={{ width: "100%", height: 260 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={evolutionData}>
+                        <XAxis dataKey="date" />
+                        <YAxis domain={[0, 10]} />
+                        <Tooltip />
+                        <Line
+                          dataKey="score"
+                          stroke="#a78bfa"
+                          strokeWidth={3}
+                          dot={{ r: 5 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </>
+            )}
 
-              {aiResult && (
-                <div className="ai-result-box animate-fade-in">
-                  <ReactMarkdown>{aiResult}</ReactMarkdown>
-                </div>
-              )}
-            </div>
+            <button
+              className="modal-close"
+              onClick={() => setShowAIModal(false)}
+            >
+              <X size={18} />
+            </button>
           </div>
         </div>
       )}
