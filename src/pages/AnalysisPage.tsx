@@ -1,13 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import {
-  ArrowLeft,
-  UserMinus,
-  Sparkles,
-  X,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowLeft, UserMinus, Sparkles, X, TrendingUp } from "lucide-react";
 
 import {
   LineChart,
@@ -23,6 +17,7 @@ import {
   useGithubConnections,
   useGithubRepos,
 } from "../hooks/useGithubData";
+
 import { aiService } from "../services/aiService";
 import type { AnalysisTab, AIMode } from "../types";
 
@@ -30,14 +25,41 @@ import { UserCard } from "../components/ui/UserCard";
 import { StatCard } from "../components/ui/StatCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 
+/* ------------------ TYPES ------------------ */
+
 type EvolutionPoint = {
   date: string;
   score: number;
 };
 
+/* ------------------ PROMPT FINAL ------------------ */
+
+const RECRUITER_CRUEL_PROMPT = `
+Você é um recrutador técnico EXTREMAMENTE exigente.
+
+Analise o GitHub abaixo e retorne APENAS neste formato:
+
+Score de Empregabilidade: X/10
+Nível Profissional: Estagiário | Júnior | Pleno | Sênior | Staff
+
+Roadmap Personalizado (6 meses):
+- Mês 1: ...
+- Mês 2: ...
+- Mês 3: ...
+- Mês 4: ...
+- Mês 5: ...
+- Mês 6: ...
+
+Seja crítico, direto e realista. Não seja educado.
+`;
+
+/* ------------------ COMPONENT ------------------ */
+
 export const AnalysisPage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+
+  /* ---------- UI STATE ---------- */
 
   const [activeTab, setActiveTab] = useState<AnalysisTab>("nonFollowers");
   const [filterText, setFilterText] = useState("");
@@ -47,8 +69,16 @@ export const AnalysisPage = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
 
+  const [loadingExtraAI, setLoadingExtraAI] = useState(false);
+  const [employabilityScore, setEmployabilityScore] = useState<number | null>(
+    null,
+  );
+  const [roadmap, setRoadmap] = useState("");
+
   const [showEvolution, setShowEvolution] = useState(false);
   const [evolutionData, setEvolutionData] = useState<EvolutionPoint[]>([]);
+
+  /* ---------- DATA ---------- */
 
   const {
     data: profile,
@@ -63,7 +93,7 @@ export const AnalysisPage = () => {
     !!profile,
   );
 
-  /* ------------------ ANÁLISE FOLLOWERS ------------------ */
+  /* ---------- FOLLOW ANALYSIS ---------- */
 
   const analyzedData = useMemo(() => {
     if (!relations) return { nonFollowers: [], fans: [], mutuals: [] };
@@ -96,14 +126,7 @@ export const AnalysisPage = () => {
     );
   }, [analyzedData, activeTab, filterText]);
 
-  /* ------------------ SCORE EXTRACTION ------------------ */
-
-  const extractScore = (text: string): number | null => {
-    const match = text.match(/Score de Empregabilidade.*?(\d+(?:\.\d+)?)/i);
-    return match ? Number(match[1]) : null;
-  };
-
-  /* ------------------ LOAD EVOLUTION ------------------ */
+  /* ---------- EVOLUTION STORAGE ---------- */
 
   useEffect(() => {
     if (!profile) return;
@@ -111,7 +134,12 @@ export const AnalysisPage = () => {
     if (saved) setEvolutionData(JSON.parse(saved));
   }, [profile]);
 
-  /* ------------------ IA HANDLER ------------------ */
+  const extractScore = (text: string): number | null => {
+    const match = text.match(/Score de Empregabilidade:\s*(\d+)/i);
+    return match ? Number(match[1]) : null;
+  };
+
+  /* ---------- IA: NORMAL ANALYSIS ---------- */
 
   const handleGenerateFeedback = async () => {
     if (!profile || !repos) return;
@@ -127,10 +155,37 @@ export const AnalysisPage = () => {
       });
 
       setAiResult(result);
+    } catch (err: any) {
+      setAiResult(`Erro técnico: ${err.message}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  /* ---------- IA: EMPLOYABILITY + ROADMAP ---------- */
+
+  const handleEmployabilityAnalysis = async () => {
+    if (!profile || !repos) return;
+
+    setLoadingExtraAI(true);
+    setRoadmap("");
+    setEmployabilityScore(null);
+
+    try {
+      const result = await aiService.generateFeedback({
+        profile,
+        repos,
+        mode: "roast",
+        customPrompt: RECRUITER_CRUEL_PROMPT,
+      });
+
+      setRoadmap(result);
 
       const score = extractScore(result);
       if (score !== null) {
-        const point = {
+        setEmployabilityScore(score);
+
+        const point: EvolutionPoint = {
           date: new Date().toLocaleDateString("pt-BR"),
           score,
         };
@@ -144,13 +199,13 @@ export const AnalysisPage = () => {
         );
       }
     } catch (err: any) {
-      setAiResult(`**Erro Técnico:** ${err.message || "Erro desconhecido"}`);
+      setRoadmap("Erro ao gerar análise de empregabilidade.");
     } finally {
-      setAiLoading(false);
+      setLoadingExtraAI(false);
     }
   };
 
-  /* ------------------ STATES ------------------ */
+  /* ---------- STATES ---------- */
 
   if (loadingProfile || loadingRelations) return <SkeletonLoader />;
 
@@ -163,7 +218,7 @@ export const AnalysisPage = () => {
     );
   }
 
-  /* ------------------ UI ------------------ */
+  /* ---------- UI ---------- */
 
   return (
     <div className="analysis-container">
@@ -191,49 +246,80 @@ export const AnalysisPage = () => {
             />
           </div>
 
-          <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
-            <Sparkles size={18} /> Análise com IA
-          </button>
+          {/* ---------- BUTTONS SIDE BY SIDE ---------- */}
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button className="btn btn-ai" onClick={() => setShowAIModal(true)}>
+              <Sparkles size={18} /> Análise com IA
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={handleEmployabilityAnalysis}
+              disabled={loadingExtraAI}
+            >
+              🧠 Score & Roadmap
+            </button>
+          </div>
+
+          {/* ---------- BADGE ---------- */}
+
+          {employabilityScore !== null && (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "8px 14px",
+                borderRadius: 999,
+                background: "linear-gradient(135deg,#a78bfa,#ec4899)",
+                color: "#fff",
+                fontWeight: 600,
+                width: "fit-content",
+              }}
+            >
+              Empregabilidade: {employabilityScore}/10
+            </div>
+          )}
+
+          {roadmap && (
+            <div className="ai-result-box animate-fade-in">
+              <ReactMarkdown>{roadmap}</ReactMarkdown>
+            </div>
+          )}
         </>
       )}
 
-      {/* ------------------ TABS ------------------ */}
+      {/* ---------- EVOLUTION GRAPH ---------- */}
 
-      <div className="tabs-container">
-        <button
-          className={activeTab === "nonFollowers" ? "active" : ""}
-          onClick={() => setActiveTab("nonFollowers")}
-        >
-          <UserMinus size={16} /> Não seguem
-        </button>
-        <button
-          className={activeTab === "fans" ? "active" : ""}
-          onClick={() => setActiveTab("fans")}
-        >
-          Fãs
-        </button>
-        <button
-          className={activeTab === "mutuals" ? "active" : ""}
-          onClick={() => setActiveTab("mutuals")}
-        >
-          Mútuos
-        </button>
-      </div>
+      {evolutionData.length > 0 && (
+        <>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowEvolution((v) => !v)}
+          >
+            <TrendingUp size={16} /> Evolução
+          </button>
 
-      <input
-        className="search-input"
-        placeholder="Filtrar..."
-        value={filterText}
-        onChange={(e) => setFilterText(e.target.value)}
-      />
+          {showEvolution && (
+            <div style={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer>
+                <LineChart data={evolutionData}>
+                  <XAxis dataKey="date" />
+                  <YAxis domain={[0, 10]} />
+                  <Tooltip />
+                  <Line
+                    dataKey="score"
+                    stroke="#a78bfa"
+                    strokeWidth={3}
+                    dot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </>
+      )}
 
-      <div className="users-grid">
-        {displayedUsers.map((user) => (
-          <UserCard key={user.id} user={user} />
-        ))}
-      </div>
-
-      {/* ------------------ MODAL IA ------------------ */}
+      {/* ---------- IA MODAL ---------- */}
 
       {showAIModal && (
         <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
@@ -246,9 +332,7 @@ export const AnalysisPage = () => {
             <div className="ai-options">
               <button onClick={() => setAiMode("friendly")}>🥰 Amigável</button>
               <button onClick={() => setAiMode("liar")}>🤥 Mentiroso</button>
-              <button onClick={() => setAiMode("roast")}>
-                🔥 Recrutador Cruel
-              </button>
+              <button onClick={() => setAiMode("roast")}>🔥 Recrutador</button>
             </div>
 
             <button
@@ -263,35 +347,6 @@ export const AnalysisPage = () => {
               <div className="ai-result-box">
                 <ReactMarkdown>{aiResult}</ReactMarkdown>
               </div>
-            )}
-
-            {evolutionData.length > 0 && (
-              <>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowEvolution((v) => !v)}
-                >
-                  <TrendingUp size={16} /> Evolução de Empregabilidade
-                </button>
-
-                {showEvolution && (
-                  <div style={{ width: "100%", height: 260 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={evolutionData}>
-                        <XAxis dataKey="date" />
-                        <YAxis domain={[0, 10]} />
-                        <Tooltip />
-                        <Line
-                          dataKey="score"
-                          stroke="#a78bfa"
-                          strokeWidth={3}
-                          dot={{ r: 5 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </>
             )}
 
             <button
