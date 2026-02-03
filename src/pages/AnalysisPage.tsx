@@ -30,6 +30,9 @@ import { StatCard } from "../components/ui/StatCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { UserCard } from "../components/ui/UserCard";
 
+// IMPORTANTE: Importa o CSS específico desta página
+import "./AnalysisPage.css";
+
 /* ================= TYPES & CONFIG ================= */
 
 type ViewMode = "followers" | "following" | "mutual" | "nonFollowers";
