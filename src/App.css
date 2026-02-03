@@ -5,8 +5,16 @@
   --bg-secondary: #13161d;
   --bg-tertiary: #1a1f29;
   --bg-card: #1f242e;
+
   --accent-primary: #00d9ff;
+  /* Cyan */
   --accent-secondary: #7b61ff;
+  /* Roxo Neon */
+  --accent-pink: #ec4899;
+  /* Rosa */
+  --accent-purple-soft: #8b5cf6;
+  /* Roxo Suave para o botão */
+
   --text-primary: #e6edf3;
   --text-secondary: #8b949e;
   --border-color: #30363d;
@@ -23,19 +31,12 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Background */
+/* --- BACKGROUND --- */
 .bg-effect {
   position: fixed;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   z-index: 0;
@@ -65,20 +66,18 @@ body {
   left: -150px;
 }
 
-/* Layout Geral */
 .app-container {
   position: relative;
   z-index: 1;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  flex: 1;
-  width: 100%;
 }
 
+/* --- HEADER --- */
 .header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .logo {
@@ -96,7 +95,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--bg-primary);
+  color: #000;
 }
 
 .logo-text {
@@ -105,91 +104,90 @@ body {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-/* --- NOVO DESIGN: Cabeçalho do Perfil --- */
-.profile-header {
+/* --- BOTÃO VOLTAR (Corrigido) --- */
+.btn-back {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.btn-back:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+/* --- PERFIL (Tamanho Ajustado) --- */
+.profile-summary {
   display: flex;
   align-items: center;
   gap: 20px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-  padding: 24px;
-  border-radius: 20px;
+  background: var(--bg-card);
+  padding: 20px;
+  /* Padding reduzido */
+  border-radius: 16px;
   border: 1px solid var(--border-color);
   margin-bottom: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 100%;
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 3px solid var(--accent-primary);
-  padding: 3px;
-  /* Cria um espaço entre a borda e a foto */
-  background: var(--bg-card);
+  width: 100px;
+  /* Tamanho controlado */
+  height: 100px;
+  border-radius: 12px;
+  /* Quadrado arredondado conforme imagem */
   object-fit: cover;
 }
 
-.profile-info {
-  display: flex;
-  flex-direction: column;
-}
-
 .profile-info h2 {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 22px;
+  /* Fonte menor */
+  font-weight: 700;
   color: var(--text-primary);
-  margin: 0;
-  line-height: 1.2;
+  margin-bottom: 4px;
 }
 
-.profile-info p {
-  font-size: 16px;
+.profile-username {
   color: var(--text-secondary);
   font-family: 'JetBrains Mono', monospace;
-  margin: 4px 0 0 0;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 4px 8px;
-  border-radius: 6px;
-  align-self: flex-start;
-  /* Ocupa só o espaço necessário */
+  font-size: 14px;
 }
 
-/* --- Stats Grid (Números lado a lado) --- */
+/* --- STATS --- */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 32px;
 }
 
 .stat-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 16px 8px;
+  border-radius: 12px;
+  padding: 20px;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 90px;
-  transition: transform 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent-primary);
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 4px;
   line-height: 1;
+  margin-bottom: 5px;
 }
 
 .stat-label {
@@ -200,254 +198,238 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* Botões e Inputs */
-.ai-trigger-container {
+/* --- AÇÕES (BOTOES ROSA E ROXO) --- */
+.actions-row {
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  /* Espaço entre os botões */
   margin-bottom: 32px;
 }
 
 .btn-ai {
   background: linear-gradient(135deg, #a855f7, #ec4899);
   color: white;
-  padding: 16px 32px;
-  border-radius: 50px;
+  padding: 14px 24px;
+  border-radius: 12px;
   border: none;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.4);
+  gap: 8px;
   transition: transform 0.2s;
+  flex: 1;
+  justify-content: center;
 }
 
 .btn-ai:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
+  filter: brightness(1.1);
 }
 
-/* Tabs & Users */
-.tabs-container {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  justify-content: flex-start;
-}
-
-.tab {
-  padding: 10px 20px;
-  border-radius: 10px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
+/* Botão Roxo Suave (Score e Roteiro) */
+.btn-purple {
+  background: rgba(139, 92, 246, 0.15);
+  /* Roxo bem suave */
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #e9d5ff;
+  /* Texto lilás claro */
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 14px;
+  transition: all 0.2s;
+  flex: 1;
+  justify-content: center;
 }
 
-.tab.active {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  background: rgba(0, 217, 255, 0.05);
+.btn-purple:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: var(--accent-purple-soft);
+  color: white;
 }
 
-.badge {
-  background: var(--bg-primary);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  border: 1px solid var(--border-color);
+.btn-purple:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 
-.search-input {
-  width: 100%;
-  padding: 16px;
+/* Botão Evolução (Secundário) */
+.btn-secondary {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  color: var(--text-secondary);
+  padding: 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* --- TABS (Conexões) --- */
+.tabs-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
-  outline: none;
-  margin-bottom: 24px;
-  font-size: 16px;
+  border-color: var(--text-secondary);
 }
 
-.search-input:focus {
-  border-color: var(--accent-primary);
-}
-
+/* --- USERS GRID --- */
 .users-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 16px;
 }
 
 .user-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 16px;
   display: flex;
-  gap: 14px;
   align-items: center;
+  gap: 12px;
   text-decoration: none;
-  color: inherit;
-  transition: all 0.2s;
+  transition: transform 0.2s;
 }
 
 .user-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   border-color: var(--accent-primary);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .user-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
 }
 
-/* Modal */
+.user-name {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.user-login {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* --- MODAL --- */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
   display: flex;
-  alignItems: center;
+  align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100;
   padding: 20px;
 }
 
-.ai-modal-content {
+.modal-content {
   background: var(--bg-secondary);
-  border-radius: 24px;
-  padding: 32px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 85vh;
-  overflow-y: auto;
   border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 30px;
+  width: 100%;
+  max-width: 600px;
+  position: relative;
 }
 
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Botoes de Opção no Modal (Estilo Branco/Claro da imagem) */
 .ai-options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 10px;
-  margin: 24px 0;
+  margin: 20px 0;
 }
 
 .btn-option {
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.btn-option.selected {
-  border-color: var(--accent-primary);
-  background: rgba(0, 217, 255, 0.1);
-  color: var(--text-primary);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
-  padding: 14px;
-  width: 100%;
-  border-radius: 12px;
+  flex: 1;
+  background: #fff;
+  /* Fundo branco como na imagem */
+  color: #000;
   border: none;
-  font-weight: 700;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
   cursor: pointer;
-  font-size: 16px;
-}
-
-/* Skeleton & Error */
-.skeleton {
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-tertiary) 50%, var(--bg-card) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.error-state {
-  text-align: center;
-  padding: 40px;
-}
-
-.landing-page {
-  text-align: center;
-  padding-top: 40px;
-}
-
-.hero-title {
-  font-size: 40px;
-  font-weight: 800;
-  margin-bottom: 20px;
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.landing-search {
   display: flex;
-  gap: 10px;
-  max-width: 500px;
-  margin: 0 auto;
+  align-items: center;
   justify-content: center;
+  gap: 6px;
+  opacity: 0.7;
+  transition: all 0.2s;
 }
 
-@media (max-width: 768px) {
-  .stats-grid {
-    gap: 8px;
-  }
+.btn-option:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
 
-  .stat-card {
-    min-height: 70px;
-    padding: 10px 4px;
-  }
+.btn-option.active {
+  opacity: 1;
+  outline: 2px solid var(--accent-primary);
+  /* Destaque quando selecionado */
+}
 
-  .stat-value {
-    font-size: 20px;
-  }
+/* Caixa de Segurança (Roxa) */
+.security-box {
+  background: rgba(123, 97, 255, 0.1);
+  border: 1px dashed var(--accent-secondary);
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--accent-secondary);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
 
-  .profile-header {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .profile-info p {
-    align-self: center;
-  }
-
-  .ai-options {
-    grid-template-columns: 1fr;
-  }
+.ai-result {
+  margin-top: 20px;
+  background: var(--bg-primary);
+  padding: 20px;
+  border-radius: 12px;
+  line-height: 1.6;
+  font-size: 14px;
+  max-height: 300px;
+  overflow-y: auto;
 }
