@@ -30,7 +30,8 @@ import { StatCard } from "../components/ui/StatCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { UserCard } from "../components/ui/UserCard";
 
-/* ================= CONFIG ================= */
+/* ================= TYPES & CONFIG ================= */
+
 type ViewMode = "followers" | "following" | "mutual" | "nonFollowers";
 
 const RECRUITER_CRUEL_PROMPT = `
@@ -42,6 +43,8 @@ FOCO EXCLUSIVO:
 Seja técnico e prático. Não fale sobre personalidade, fale sobre código e mercado.
 `;
 
+/* ================= COMPONENT ================= */
+
 export const AnalysisPage = () => {
   const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
@@ -52,6 +55,7 @@ export const AnalysisPage = () => {
   }
 
   /* ================= STATES ================= */
+
   const [showAIModal, setShowAIModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [aiMode, setAiMode] = useState<AIMode>("friendly");
@@ -68,10 +72,11 @@ export const AnalysisPage = () => {
   const [showEvolution, setShowEvolution] = useState(false);
   const [evolutionData, setEvolutionData] = useState<any[]>([]);
 
-  // Novo estado de visualização
+  // Controle das abas de visualização
   const [viewMode, setViewMode] = useState<ViewMode>("followers");
 
   /* ================= DATA FETCHING ================= */
+
   const {
     data: profile,
     isLoading: loadingProfile,
@@ -85,7 +90,7 @@ export const AnalysisPage = () => {
 
   /* ================= COMPUTED LOGIC ================= */
 
-  // Lógica para calcular quem não segue de volta
+  // Calcula quem você segue mas não te segue de volta
   const nonFollowersList = useMemo(() => {
     if (!relations) return [];
     const followersSet = new Set(
@@ -98,7 +103,7 @@ export const AnalysisPage = () => {
 
   const nonFollowersCount = nonFollowersList.length;
 
-  // Filtro da Grid de Usuários
+  // Filtra quais usuários mostrar na grid baseada na aba selecionada
   const usersToRender = useMemo(() => {
     if (!relations) return [];
 
@@ -121,6 +126,7 @@ export const AnalysisPage = () => {
   }, [relations, viewMode, nonFollowersList]);
 
   /* ================= EFFECTS ================= */
+
   useEffect(() => {
     if (!profile) return;
     const saved = localStorage.getItem(`evolution-${profile.login}`);
@@ -129,14 +135,13 @@ export const AnalysisPage = () => {
 
   /* ================= HANDLERS ================= */
 
-  // Handler 1: Análise de Perfil (Personalidade varia)
+  // Gera feedback de perfil (personalidade variável)
   const handleGenerateFeedback = async () => {
     if (!profile || !repos) return;
     setAiLoading(true);
     setAiResult("");
 
     try {
-      // O backend já usa o 'aiMode' para decidir a personalidade
       const result = await aiService.generateFeedback({
         profile,
         repos,
@@ -150,7 +155,7 @@ export const AnalysisPage = () => {
     }
   };
 
-  // Handler 2: Score & Roteiro (Sempre técnico/recrutador)
+  // Gera Roadmap e Score (sempre técnico)
   const handleEmployabilityAnalysis = async () => {
     if (!profile || !repos) return;
     setLoadingExtraAI(true);
@@ -167,7 +172,6 @@ export const AnalysisPage = () => {
 
       setRoadmap(result);
 
-      // Tenta extrair numero do texto
       const match = result.match(/(\d+)\/10/);
       if (match) {
         const score = Number(match[1]);
@@ -189,18 +193,19 @@ export const AnalysisPage = () => {
   };
 
   /* ================= RENDER ================= */
+
   if (loadingProfile || loadingRelations) return <SkeletonLoader />;
   if (error || !profile)
     return <div className="error-state">Perfil não encontrado</div>;
 
   return (
     <div className="analysis-container animate-fade-in">
-      {/* 1. Botão Voltar Estilizado */}
+      {/* 1. Botão Voltar */}
       <button className="btn-back" onClick={() => navigate("/")}>
         <ArrowLeft size={16} /> Voltar
       </button>
 
-      {/* 2. Perfil Ajustado */}
+      {/* 2. Perfil Compacto */}
       <div className="profile-summary">
         <img
           src={profile.avatar_url}
@@ -213,7 +218,7 @@ export const AnalysisPage = () => {
         </div>
       </div>
 
-      {/* 3. Cards de Estatística */}
+      {/* 3. Stats Grid */}
       <div className="stats-grid">
         <StatCard label="Seguidores" value={profile.followers} />
         <StatCard label="Seguindo" value={profile.following} />
@@ -224,7 +229,7 @@ export const AnalysisPage = () => {
         />
       </div>
 
-      {/* 4. Botões de Ação (Rosa e Roxo) */}
+      {/* 4. Botões de Ação */}
       <div className="actions-row">
         <button className="btn-ai" onClick={() => setShowAIModal(true)}>
           <Sparkles size={18} /> Análise com IA
@@ -239,7 +244,7 @@ export const AnalysisPage = () => {
             "Calculando..."
           ) : (
             <>
-              <BrainCircuit size={18} /> Pontuação e Roteiro
+              <BrainCircuit size={18} /> Roadmap
             </>
           )}
         </button>
@@ -270,7 +275,13 @@ export const AnalysisPage = () => {
             <LineChart data={evolutionData}>
               <XAxis dataKey="date" stroke="#666" />
               <YAxis domain={[0, 10]} stroke="#666" />
-              <Tooltip contentStyle={{ background: "#333", border: "none" }} />
+              <Tooltip
+                contentStyle={{
+                  background: "#333",
+                  border: "none",
+                  color: "#fff",
+                }}
+              />
               <Line
                 type="monotone"
                 dataKey="score"
@@ -282,7 +293,7 @@ export const AnalysisPage = () => {
         </div>
       )}
 
-      {/* 5. Abas de Conexões (Incluindo Não Seguem) */}
+      {/* 5. Abas de Conexões */}
       <div className="tabs-container">
         <button
           className={`tab-btn ${viewMode === "followers" ? "active" : ""}`}
@@ -316,7 +327,14 @@ export const AnalysisPage = () => {
           <UserCard key={u.login} user={u} />
         ))}
         {usersToRender.length === 0 && (
-          <p style={{ color: "#666", gridColumn: "1/-1", textAlign: "center" }}>
+          <p
+            style={{
+              color: "#666",
+              gridColumn: "1/-1",
+              textAlign: "center",
+              padding: 20,
+            }}
+          >
             Nenhum usuário encontrado nesta categoria.
           </p>
         )}
@@ -333,7 +351,9 @@ export const AnalysisPage = () => {
               <X />
             </button>
 
-            <h2 style={{ marginBottom: 10 }}>Análise de Perfil com IA</h2>
+            <h2 style={{ marginBottom: 10, color: "#fff" }}>
+              Análise de Perfil com IA
+            </h2>
             <p style={{ color: "#888", fontSize: 14 }}>
               Escolha a personalidade da IA:
             </p>
@@ -404,7 +424,7 @@ export const AnalysisPage = () => {
                 gap: 10,
               }}
             >
-              <BrainCircuit /> Pontuação & Roteiro
+              <BrainCircuit /> Roadmap & Score
             </h2>
 
             {employabilityScore !== null && (
