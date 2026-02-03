@@ -29,22 +29,48 @@ import type { AIMode } from "../types";
 import { StatCard } from "../components/ui/StatCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { UserCard } from "../components/ui/UserCard";
-
-// IMPORTANTE: Importa o CSS específico desta página
 import "./AnalysisPage.css";
 
-/* ================= TYPES & CONFIG ================= */
+/* ================= PROMPTS DIFERENCIADOS ================= */
+
+// Prompt 1: Análise de Perfil (Botão Rosa)
+const generateAnalysisPrompt = (mode: string) => {
+  return `
+    Você é um especialista em análise de desenvolvedores no GitHub.
+    MODO: ${mode === "roast" ? "Recrutador Brutal (Critique severamente)" : mode === "liar" ? "Mentiroso Exagerado (Elogie absurdamente)" : "Amigável e Construtivo"}.
+    
+    Analise este perfil com base na Bio, Repositórios e Linguagens.
+    O QUE ENTREGAR:
+    - Uma visão geral da "vibe" do perfil.
+    - Pontos fortes técnicos aparentes.
+    - Pontos fracos ou o que está faltando (ex: falta de documentação, projetos parados).
+    - Conclusão rápida.
+
+    NÃO ENTREGAR ROADMAP NESTA RESPOSTA. APENAS ANÁLISE.
+  `;
+};
+
+// Prompt 2: Roteiro e Ideias (Botão Roxo)
+const ROADMAP_PROMPT = `
+  Você é um Mentor de Carreira Sênior Tech.
+  Com base nos dados deste perfil (linguagens e projetos atuais), crie um plano de ação.
+  
+  O QUE ENTREGAR (Use Markdown, seja direto):
+  
+  1. 🎯 **Objetivo Identificado**: (Deduza o nível atual: Jr/Pleno/Senior e o foco).
+  
+  2. 🗺️ **Roadmap de Estudos (3 Meses)**:
+     - Mês 1: O que estudar para tapar buracos.
+     - Mês 2: Tecnologias para avançar.
+     - Mês 3: Consolidação.
+  
+  3. 💡 **Ideias de Projetos para o Portfólio**:
+     - Sugira 2 projetos práticos que combinem com a stack do usuário mas elevem o nível (ex: se usa React, sugira um SaaS com Next.js e Stripe).
+     
+  4. 🚀 **Conselho de Ouro**: Uma dica final para conseguir vaga ou clientes.
+`;
 
 type ViewMode = "followers" | "following" | "mutual" | "nonFollowers";
-
-const RECRUITER_CRUEL_PROMPT = `
-Você é um recrutador técnico e mentor de carreira direto.
-Analise o perfil e repositórios.
-FOCO EXCLUSIVO: 
-1. Dê uma nota de empregabilidade (0-10).
-2. Crie um ROADMAP prático de estudos para os próximos 3 meses para aumentar essa nota.
-Seja técnico e prático. Não fale sobre personalidade, fale sobre código e mercado.
-`;
 
 /* ================= COMPONENT ================= */
 
@@ -60,22 +86,16 @@ export const AnalysisPage = () => {
   /* ================= STATES ================= */
 
   const [showAIModal, setShowAIModal] = useState(false);
-  const [showScoreModal, setShowScoreModal] = useState(false);
+  const [modalType, setModalType] = useState<"analysis" | "roadmap" | null>(
+    null,
+  );
   const [aiMode, setAiMode] = useState<AIMode>("friendly");
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
 
-  const [loadingExtraAI, setLoadingExtraAI] = useState(false);
-  const [roadmap, setRoadmap] = useState("");
-  const [employabilityScore, setEmployabilityScore] = useState<number | null>(
-    null,
-  );
-
   const [showEvolution, setShowEvolution] = useState(false);
   const [evolutionData, setEvolutionData] = useState<any[]>([]);
-
-  // Controle das abas de visualização
   const [viewMode, setViewMode] = useState<ViewMode>("followers");
 
   /* ================= DATA FETCHING ================= */
@@ -93,7 +113,6 @@ export const AnalysisPage = () => {
 
   /* ================= COMPUTED LOGIC ================= */
 
-  // Calcula quem você segue mas não te segue de volta
   const nonFollowersList = useMemo(() => {
     if (!relations) return [];
     const followersSet = new Set(
@@ -106,10 +125,8 @@ export const AnalysisPage = () => {
 
   const nonFollowersCount = nonFollowersList.length;
 
-  // Filtra quais usuários mostrar na grid baseada na aba selecionada
   const usersToRender = useMemo(() => {
     if (!relations) return [];
-
     switch (viewMode) {
       case "followers":
         return relations.followers;
@@ -138,60 +155,56 @@ export const AnalysisPage = () => {
 
   /* ================= HANDLERS ================= */
 
-  // Gera feedback de perfil (personalidade variável)
-  const handleGenerateFeedback = async () => {
+  // Handler 1: Análise de Perfil (Botão Rosa)
+  const openAnalysisModal = () => {
+    setModalType("analysis");
+    setAiResult("");
+    setShowAIModal(true);
+  };
+
+  const handleGenerateAnalysis = async () => {
     if (!profile || !repos) return;
     setAiLoading(true);
-    setAiResult("");
-
     try {
+      const customPrompt = generateAnalysisPrompt(aiMode);
       const result = await aiService.generateFeedback({
         profile,
         repos,
         mode: aiMode,
+        customPrompt,
       });
       setAiResult(result);
     } catch {
-      setAiResult("Erro ao gerar análise. Tente novamente.");
+      setAiResult("Erro ao gerar análise.");
     } finally {
       setAiLoading(false);
     }
   };
 
-  // Gera Roadmap e Score (sempre técnico)
-  const handleEmployabilityAnalysis = async () => {
-    if (!profile || !repos) return;
-    setLoadingExtraAI(true);
-    setEmployabilityScore(null);
-    setRoadmap("");
+  // Handler 2: Roteiro e Projetos (Botão Roxo)
+  const openRoadmapModal = () => {
+    setModalType("roadmap");
+    setAiResult("");
+    setShowAIModal(true);
+    // Dispara automaticamente ou espera clique? Vamos esperar clique para padronizar
+    // handleGenerateRoadmap();
+  };
 
+  const handleGenerateRoadmap = async () => {
+    if (!profile || !repos) return;
+    setAiLoading(true);
     try {
       const result = await aiService.generateFeedback({
         profile,
         repos,
-        mode: "roast",
-        customPrompt: RECRUITER_CRUEL_PROMPT,
+        mode: "friendly",
+        customPrompt: ROADMAP_PROMPT,
       });
-
-      setRoadmap(result);
-
-      const match = result.match(/(\d+)\/10/);
-      if (match) {
-        const score = Number(match[1]);
-        setEmployabilityScore(score);
-        const updated = [
-          ...evolutionData,
-          { date: new Date().toLocaleDateString("pt-BR"), score },
-        ];
-        setEvolutionData(updated);
-        localStorage.setItem(
-          `evolution-${profile.login}`,
-          JSON.stringify(updated),
-        );
-      }
-      setShowScoreModal(true);
+      setAiResult(result);
+    } catch {
+      setAiResult("Erro ao gerar roteiro.");
     } finally {
-      setLoadingExtraAI(false);
+      setAiLoading(false);
     }
   };
 
@@ -208,7 +221,7 @@ export const AnalysisPage = () => {
         <ArrowLeft size={16} /> Voltar
       </button>
 
-      {/* 2. Perfil Compacto */}
+      {/* 2. Perfil */}
       <div className="profile-summary">
         <img
           src={profile.avatar_url}
@@ -234,22 +247,14 @@ export const AnalysisPage = () => {
 
       {/* 4. Botões de Ação */}
       <div className="actions-row">
-        <button className="btn-ai" onClick={() => setShowAIModal(true)}>
-          <Sparkles size={18} /> Análise com IA
+        <button className="btn-ai" onClick={openAnalysisModal}>
+          <Sparkles size={20} />
+          <span>Análise com IA</span>
         </button>
 
-        <button
-          className="btn-purple"
-          onClick={handleEmployabilityAnalysis}
-          disabled={loadingExtraAI}
-        >
-          {loadingExtraAI ? (
-            "Calculando..."
-          ) : (
-            <>
-              <BrainCircuit size={18} /> Roadmap
-            </>
-          )}
+        <button className="btn-purple" onClick={openRoadmapModal}>
+          <BrainCircuit size={20} />
+          <span>Roteiro</span>
         </button>
 
         {evolutionData.length > 0 && (
@@ -257,12 +262,12 @@ export const AnalysisPage = () => {
             className="btn-secondary"
             onClick={() => setShowEvolution((v) => !v)}
           >
-            <TrendingUp size={18} />
+            <TrendingUp size={20} />
           </button>
         )}
       </div>
 
-      {/* Gráfico de Evolução */}
+      {/* Gráfico */}
       {showEvolution && (
         <div
           className="chart-wrapper"
@@ -338,12 +343,12 @@ export const AnalysisPage = () => {
               padding: 20,
             }}
           >
-            Nenhum usuário encontrado nesta categoria.
+            Nenhum usuário encontrado.
           </p>
         )}
       </div>
 
-      {/* ================= MODAL ANÁLISE IA ================= */}
+      {/* ================= MODAL ÚNICO (DINÂMICO) ================= */}
       {showAIModal && (
         <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -351,52 +356,61 @@ export const AnalysisPage = () => {
               className="modal-close"
               onClick={() => setShowAIModal(false)}
             >
-              <X />
+              <X size={18} />
             </button>
 
-            <h2 style={{ marginBottom: 10, color: "#fff" }}>
-              Análise de Perfil com IA
-            </h2>
-            <p style={{ color: "#888", fontSize: 14 }}>
-              Escolha a personalidade da IA:
-            </p>
-
-            <div className="ai-options">
-              <button
-                className={`btn-option ${aiMode === "friendly" ? "active" : ""}`}
-                onClick={() => setAiMode("friendly")}
-              >
-                🥰 Amigável
-              </button>
-              <button
-                className={`btn-option ${aiMode === "liar" ? "active" : ""}`}
-                onClick={() => setAiMode("liar")}
-              >
-                🤥 Mentiroso
-              </button>
-              <button
-                className={`btn-option ${aiMode === "roast" ? "active" : ""}`}
-                onClick={() => setAiMode("roast")}
-              >
-                🔥 Recrutador
-              </button>
+            <div className="modal-header">
+              {modalType === "analysis" ? (
+                <h2 style={{ color: "#ec4899" }}>✨ Análise de Perfil</h2>
+              ) : (
+                <h2 style={{ color: "#8b5cf6" }}>🗺️ Roteiro & Ideias</h2>
+              )}
             </div>
 
+            {/* Opções só aparecem na Análise */}
+            {modalType === "analysis" && (
+              <div className="ai-options">
+                <button
+                  className={`btn-option ${aiMode === "friendly" ? "active" : ""}`}
+                  onClick={() => setAiMode("friendly")}
+                >
+                  🥰 Amigável
+                </button>
+                <button
+                  className={`btn-option ${aiMode === "liar" ? "active" : ""}`}
+                  onClick={() => setAiMode("liar")}
+                >
+                  🤥 Mentiroso
+                </button>
+                <button
+                  className={`btn-option ${aiMode === "roast" ? "active" : ""}`}
+                  onClick={() => setAiMode("roast")}
+                >
+                  🔥 Recrutador
+                </button>
+              </div>
+            )}
+
             <button
-              className="btn-ai"
-              style={{ width: "100%" }}
-              onClick={handleGenerateFeedback}
+              className={modalType === "analysis" ? "btn-ai" : "btn-purple"}
+              style={{ width: "100%", minHeight: "50px", flexDirection: "row" }}
+              onClick={
+                modalType === "analysis"
+                  ? handleGenerateAnalysis
+                  : handleGenerateRoadmap
+              }
               disabled={aiLoading}
             >
-              {aiLoading ? "Gerando Análise..." : "Gerar Análise"}
+              {aiLoading
+                ? "Processando..."
+                : modalType === "analysis"
+                  ? "Gerar Análise"
+                  : "Criar Roteiro"}
             </button>
 
-            {/* Box de Segurança */}
             <div className="security-box">
               <Lock size={14} />
-              <span>
-                Seus dados não são armazenados. Análise em tempo real.
-              </span>
+              <span>Análise em tempo real. Nada fica salvo.</span>
             </div>
 
             {aiResult && (
@@ -404,49 +418,6 @@ export const AnalysisPage = () => {
                 <ReactMarkdown>{aiResult}</ReactMarkdown>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODAL SCORE ================= */}
-      {showScoreModal && (
-        <div className="modal-overlay" onClick={() => setShowScoreModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setShowScoreModal(false)}
-            >
-              <X />
-            </button>
-
-            <h2
-              style={{
-                color: "#8b5cf6",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <BrainCircuit /> Roadmap & Score
-            </h2>
-
-            {employabilityScore !== null && (
-              <div
-                style={{
-                  fontSize: 40,
-                  fontWeight: 800,
-                  textAlign: "center",
-                  margin: "20px 0",
-                  color: "#fff",
-                }}
-              >
-                {employabilityScore}/10
-              </div>
-            )}
-
-            <div className="ai-result animate-fade-in">
-              <ReactMarkdown>{roadmap}</ReactMarkdown>
-            </div>
           </div>
         </div>
       )}

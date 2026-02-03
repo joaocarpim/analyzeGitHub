@@ -2,6 +2,13 @@
    ESTILOS ESPECÍFICOS DA PÁGINA DE ANÁLISE
    ========================================= */
 
+.analysis-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+}
+
 /* --- Botão Voltar --- */
 .btn-back {
     background: transparent;
@@ -25,62 +32,90 @@
     border-color: var(--accent-primary);
 }
 
-/* --- Perfil Compacto (Substitui o estilo global nesta página) --- */
+/* --- Perfil (Info do User) --- */
 .analysis-container .profile-summary {
     display: flex;
     align-items: center;
     gap: 16px;
     background: var(--bg-card);
-    padding: 16px;
-    border-radius: 12px;
+    padding: 20px;
+    border-radius: 16px;
     border: 1px solid var(--border-color);
     margin-bottom: 24px;
-    /* Trava o tamanho */
-    width: fit-content;
-    min-width: 380px;
+
+    /* Ajuste de largura e margem lateral */
+    width: 100%;
     max-width: 100%;
+    box-sizing: border-box;
 }
 
 .analysis-container .profile-avatar {
-    width: 70px;
-    height: 70px;
-    border-radius: 10px;
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
     border: 2px solid var(--border-color);
-    padding: 0;
-    /* Remove padding do global se houver */
+    object-fit: cover;
+}
+
+.analysis-container .profile-info {
+    flex: 1;
+    min-width: 0;
+    /* Evita quebra de layout com nomes longos */
 }
 
 .analysis-container .profile-info h2 {
-    font-size: 18px;
+    font-size: 20px;
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .analysis-container .profile-username {
-    font-size: 13px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: var(--text-secondary);
 }
 
-/* --- Stats Grid da Análise --- */
+/* --- Stats Grid (3 Blocos) --- */
 .analysis-container .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    /* Sempre 3 colunas, mesmo no mobile se couber */
     gap: 12px;
     margin-bottom: 32px;
 }
 
 .analysis-container .stat-card {
-    padding: 16px;
-    min-height: auto;
-    /* Reseta altura mínima global */
+    padding: 16px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    /* Garante altura igual */
+    min-height: 110px;
+    /* Altura mínima para ficar bonito */
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
 }
 
 .analysis-container .stat-value {
     font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 6px;
 }
 
-/* --- Botões de Ação (Roxo e Rosa) --- */
+.analysis-container .stat-label {
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+/* --- Botões de Ação --- */
 .actions-row {
     display: flex;
     gap: 12px;
@@ -91,18 +126,21 @@
 .btn-ai {
     background: linear-gradient(135deg, #a855f7, #ec4899);
     color: white;
-    padding: 14px 24px;
-    border-radius: 12px;
+    padding: 16px;
+    border-radius: 14px;
     border: none;
     font-weight: 700;
     cursor: pointer;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
     justify-content: center;
+    gap: 8px;
     flex: 1;
     transition: transform 0.2s;
     font-size: 15px;
+    min-height: 80px;
+    text-align: center;
 }
 
 .btn-ai:hover {
@@ -110,24 +148,24 @@
     filter: brightness(1.1);
 }
 
-/* Botão Roxo (Roadmap) */
 .btn-purple {
     background: rgba(139, 92, 246, 0.15);
-    /* Roxo transparente */
     border: 1px solid #8b5cf6;
     color: #d8b4fe;
-    /* Lilás claro */
-    padding: 14px 24px;
-    border-radius: 12px;
+    padding: 16px;
+    border-radius: 14px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
     justify-content: center;
+    gap: 8px;
     flex: 1;
     transition: all 0.2s;
     font-size: 15px;
+    min-height: 80px;
+    text-align: center;
 }
 
 .btn-purple:hover {
@@ -136,27 +174,17 @@
     box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
 }
 
-.btn-purple:disabled {
-    opacity: 0.5;
-    cursor: wait;
-}
-
 .btn-secondary {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: 14px;
-    border-radius: 12px;
-    cursor: pointer;
+    width: 50px;
+    /* Botão pequeno para o gráfico */
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.btn-secondary:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-color: var(--accent-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    color: var(--text-secondary);
+    cursor: pointer;
 }
 
 /* --- Abas (Tabs) --- */
@@ -167,8 +195,6 @@
     overflow-x: auto;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border-color);
-    justify-content: flex-start;
-    /* Reseta alinhamento global */
 }
 
 .tab-btn {
@@ -176,18 +202,11 @@
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--text-secondary);
-    padding: 10px 20px;
-    border-radius: 6px 6px 0 0;
+    padding: 10px 16px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
-    transition: all 0.2s;
-}
-
-.tab-btn:hover {
-    background: rgba(255, 255, 255, 0.03);
-    color: var(--text-primary);
 }
 
 .tab-btn.active {
@@ -196,29 +215,26 @@
     background: rgba(0, 217, 255, 0.05);
 }
 
-/* --- Grid de Usuários da Análise --- */
+/* --- Grid de Usuários --- */
 .analysis-container .users-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    /* Responsivo */
+    gap: 12px;
 }
 
 .analysis-container .user-card {
-    padding: 16px;
+    padding: 12px;
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
 }
 
 .analysis-container .user-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 8px;
-    border: none;
+    margin-bottom: 8px;
 }
 
-.analysis-container .user-name {
-    font-size: 15px;
-}
-
-/* --- Modais Específicos --- */
+/* ================= MODAL CORRIGIDO ================= */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -230,44 +246,80 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 1000;
     padding: 20px;
+    /* Margem de segurança na tela */
 }
 
 .modal-content {
-    background: var(--bg-secondary);
+    background: #13161d;
+    /* Cor sólida escura */
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 32px;
+    padding: 24px;
     width: 100%;
     max-width: 600px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+
+    /* CRUCIAL PARA CONTEÚDO GRANDE NÃO SUMIR */
+    max-height: 90vh;
+    /* Altura máxima de 90% da tela */
+    overflow-y: auto;
+    /* Scroll vertical se necessário */
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    margin-bottom: 20px;
+    text-align: center;
 }
 
 .modal-close {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
     color: var(--text-secondary);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .ai-options {
     display: flex;
-    gap: 10px;
-    margin: 24px 0;
+    gap: 8px;
+    margin-bottom: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
-/* Botões brancos de opção dentro do modal */
 .btn-option {
     flex: 1;
+    min-width: 100px;
     background: #fff;
     color: #000;
     border: 1px solid #ddd;
-    padding: 12px;
+    padding: 10px;
     border-radius: 8px;
     font-weight: 700;
     font-size: 13px;
@@ -276,56 +328,53 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    opacity: 0.6;
-    transition: all 0.2s;
-}
-
-.btn-option:hover {
-    opacity: 1;
-    transform: translateY(-2px);
+    opacity: 0.7;
 }
 
 .btn-option.active {
     opacity: 1;
-    outline: 3px solid var(--accent-primary);
-    border-color: transparent;
-}
-
-/* Box de Segurança */
-.security-box {
-    background: rgba(123, 97, 255, 0.1);
-    border: 1px dashed var(--accent-secondary);
-    padding: 12px;
-    border-radius: 8px;
-    color: var(--accent-secondary);
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 16px;
+    border: 2px solid var(--accent-primary);
+    background: #f0fdf4;
 }
 
 .ai-result {
     margin-top: 24px;
     background: var(--bg-primary);
-    padding: 20px;
+    padding: 16px;
     border-radius: 12px;
-    line-height: 1.6;
-    font-size: 14px;
-    max-height: 400px;
-    overflow-y: auto;
     border: 1px solid var(--border-color);
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-.ai-result h1, .ai-result h2, .ai-result h3 {
-    color: var(--accent-primary);
-    margin-top: 16px;
-    margin-bottom: 8px;
-}
+/* Responsividade Mobile */
+@media (max-width: 600px) {
+    .analysis-container {
+        padding: 0 16px 40px 16px;
+    }
 
-.ai-result ul {
-    padding-left: 20px;
-    margin-bottom: 16px;
-    color: var(--text-secondary);
+    .analysis-container .profile-summary {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .analysis-container .stats-grid {
+        gap: 8px;
+    }
+
+    .analysis-container .stat-value {
+        font-size: 22px;
+    }
+
+    .analysis-container .stat-label {
+        font-size: 10px;
+    }
+
+    .ai-options {
+        flex-direction: column;
+    }
+
+    .btn-option {
+        width: 100%;
+    }
 }
