@@ -40,23 +40,23 @@ const generateAnalysisPrompt = (mode: AIMode) => {
   switch (mode) {
     case "friendly":
       toneInstruction = `
-        - **PERSONA**: Você é um amigo muito gente boa e entusiasta. 
-        - **TOM**: Use MUITOS emojis 😊, linguagem simples, zero termos técnicos complexos. Fale como se estivesse explicando para uma tia querida.
-        - **FOCO**: Elogie o esforço, diga que o perfil está lindo (mesmo se não estiver) de forma fofa.
+        - **PERSONA**: Você é um amigo dev muito gente boa. 
+        - **TOM**: Use MUITOS emojis 😊, linguagem simples e acessível. Evite termos técnicos difíceis ("deploy", "CI/CD") ou explique-os de forma fofa.
+        - **FOCO**: Seja motivador, mesmo se o código for ruim. Diga que "o importante é tentar".
       `;
       break;
     case "liar":
       toneInstruction = `
-        - **PERSONA**: Você é um comediante sarcástico e mentiroso compulsivo.
-        - **TOM**: Seja engraçado, irônico e exagerado. Faça piadas com os dados.
-        - **FOCO**: Se o perfil for ruim, invente que é "minimalismo conceitual". Se tiver poucos commits, diga que é para "não humilhar os outros devs". Invente estatísticas absurdas. O objetivo é fazer rir com sarcasmo.
+        - **PERSONA**: Você é um humorista de stand-up sarcástico e exagerado.
+        - **TOM**: Seja engraçado, irônico e "mentiroso" no sentido de fazer piada com os dados.
+        - **FOCO**: Se tiver poucos commits, diga que é "estratégia de silêncio". Se tiver muitos, diga que a pessoa "não tem vida social". Invente títulos engraçados para a nota. O objetivo é o entretenimento.
       `;
       break;
     case "roast":
       toneInstruction = `
-        - **PERSONA**: Você é um Recrutador Sênior chato, crítico e realista.
-        - **TOM**: Profissional, frio, direto ao ponto. Sem "parabéns", apenas fatos.
-        - **FOCO**: Critique a falta de atividade, nomes de repositórios ruins, falta de descrição. Fale sobre empregabilidade real.
+        - **PERSONA**: Você é um Recrutador Técnico Sênior extremamente exigente e frio.
+        - **TOM**: Profissional, direto, crítico e realista. Sem "parabéns" desnecessários.
+        - **FOCO**: Julgue a qualidade dos commits, a falta de documentação e a relevância real dos projetos para o mercado.
       `;
       break;
   }
@@ -64,19 +64,25 @@ const generateAnalysisPrompt = (mode: AIMode) => {
   return `
     ${toneInstruction}
 
-    **OBJETIVO DA ANÁLISE (Raio-X do Perfil Atual):**
-    Analise os dados fornecidos (Bio, Repositórios, Seguidores, Datas de Update).
-    
-    **O QUE VOCÊ DEVE FALAR (Baseado APENAS no que existe hoje):**
-    1. 📊 **Métricas e Atividade**: Comente sobre a quantidade de repositórios públicos. Eles parecem abandonados? A data da última atualização é recente? O perfil é ativo ou fantasma?
-    2. ⭐ **Qualidade Percebida**: Tem estrelas? Tem forks? Os nomes dos projetos fazem sentido ou são genéricos (ex: "teste", "aula01")?
-    3. 📝 **Commits e Código**: Baseado nas datas e descrições, parece que a pessoa commita com frequência ou faz "commit bomb" (tudo num dia só)?
-    4. 🕵️ **Veredito do Perfil**: Resuma a impressão que esse perfil passa hoje.
+    **OBJETIVO: RAIO-X DO PERFIL ATUAL (Passado e Presente)**
+    Analise os dados fornecidos (Bio, Repositórios, Linguagens, Datas).
 
-    **REGRA ABSOLUTA:** - NÃO DÊ DICAS DE ESTUDO.
-    - NÃO CRIE ROADMAP.
-    - NÃO SUGIRA PROJETOS FUTUROS.
-    - Fale apenas do PASSADO e do PRESENTE do perfil.
+    **ESTRUTURA DA RESPOSTA (Use Markdown):**
+
+    1. 📊 **Análise de Métricas**:
+       - **Commits**: Analise a frequência (baseado nas datas de update). São consistentes ou esporádicos? Parecem commits de qualidade ou só "update readme"?
+       - **Projetos e Techs**: Quais tecnologias dominam? Há diversidade ou é mono-stack?
+       - **Relevância**: Tem Estrelas? Tem Forks? O perfil tem impacto na comunidade ou é "fantasma"?
+
+    2. 🏆 **Nota do Perfil (0 a 10)**:
+       - Dê uma nota baseada *apenas* no que existe hoje.
+       - Justifique a nota em 1 frase curta (no tom da persona escolhida).
+
+    3. 🕵️ **Veredito Final**:
+       - Resuma a impressão que esse perfil passa para quem visita hoje.
+       - Cite 1 ponto forte e 1 ponto fraco CRÍTICO que precisa de atenção imediata (ex: "Falta Readme", "Projetos antigos").
+
+    **REGRA:** NÃO CRIE PLANO DE ESTUDOS. NÃO DÊ IDEIAS DE PROJETOS FUTUROS. FALE DO QUE JÁ EXISTE.
   `;
 };
 
@@ -199,17 +205,16 @@ export const AnalysisPage = () => {
   const handleGenerate = async () => {
     if (!profile || !repos) return;
     setAiLoading(true);
-    setAiResult(""); // Limpa resultado anterior
+    setAiResult("");
 
     try {
       let prompt = "";
       let modeToSend = aiMode;
 
       if (modalType === "analysis") {
-        // Usa o modo selecionado (friendly, liar, roast)
         prompt = generateAnalysisPrompt(aiMode);
       } else {
-        // Roadmap é sempre "Mentor sério/amigável", ignoramos o seletor de modo
+        // Roadmap usa tom padrão "Mentor Amigável/Sério"
         modeToSend = "friendly";
         prompt = ROADMAP_PROMPT;
       }
@@ -223,9 +228,9 @@ export const AnalysisPage = () => {
 
       setAiResult(result);
 
-      // Se for roadmap, salva score (simulação)
-      if (modalType === "roadmap") {
-        // Lógica opcional de salvar score se o roadmap retornar nota
+      // (Opcional) Salvar score no gráfico se a resposta contiver nota
+      if (modalType === "analysis") {
+        // Se quiser extrair a nota da análise para o gráfico, a lógica iria aqui
       }
     } catch {
       setAiResult("Ocorreu um erro ao gerar a resposta. Tente novamente.");
@@ -387,9 +392,33 @@ export const AnalysisPage = () => {
 
             <div className="modal-header">
               {modalType === "analysis" ? (
-                <h2 style={{ color: "#ec4899" }}>✨ Análise de Perfil</h2>
+                <>
+                  <h2 style={{ color: "#ec4899" }}>✨ Análise de Perfil</h2>
+                  <p
+                    style={{
+                      color: "#888",
+                      fontSize: "14px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    Descubra como seu perfil é visto hoje: qualidade dos
+                    commits, techs, estrelas e uma nota geral.
+                  </p>
+                </>
               ) : (
-                <h2 style={{ color: "#8b5cf6" }}>🗺️ Roteiro & Ideias</h2>
+                <>
+                  <h2 style={{ color: "#8b5cf6" }}>🗺️ Roteiro & Ideias</h2>
+                  <p
+                    style={{
+                      color: "#888",
+                      fontSize: "14px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    Receba um plano de estudos personalizado e ideias de
+                    projetos para evoluir sua carreira.
+                  </p>
+                </>
               )}
             </div>
 
@@ -421,7 +450,8 @@ export const AnalysisPage = () => {
             <div className="security-box" style={{ marginBottom: "16px" }}>
               <Lock size={14} />
               <span>
-                Seus dados são processados em tempo real e não são armazenados.
+                Seus dados são processados em tempo real pela IA e descartados
+                após a análise. Nada é salvo.
               </span>
             </div>
 
