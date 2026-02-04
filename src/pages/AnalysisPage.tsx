@@ -31,43 +31,72 @@ import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { UserCard } from "../components/ui/UserCard";
 import "./AnalysisPage.css";
 
-/* ================= PROMPTS DIFERENCIADOS ================= */
+/* ================= LÓGICA DE PROMPTS ================= */
 
-// Prompt 1: Análise de Perfil (Botão Rosa)
-const generateAnalysisPrompt = (mode: string) => {
+const generateAnalysisPrompt = (mode: AIMode) => {
+  // Configuração da Personalidade
+  let toneInstruction = "";
+
+  switch (mode) {
+    case "friendly":
+      toneInstruction = `
+        - **PERSONA**: Você é um amigo muito gente boa e entusiasta. 
+        - **TOM**: Use MUITOS emojis 😊, linguagem simples, zero termos técnicos complexos. Fale como se estivesse explicando para uma tia querida.
+        - **FOCO**: Elogie o esforço, diga que o perfil está lindo (mesmo se não estiver) de forma fofa.
+      `;
+      break;
+    case "liar":
+      toneInstruction = `
+        - **PERSONA**: Você é um comediante sarcástico e mentiroso compulsivo.
+        - **TOM**: Seja engraçado, irônico e exagerado. Faça piadas com os dados.
+        - **FOCO**: Se o perfil for ruim, invente que é "minimalismo conceitual". Se tiver poucos commits, diga que é para "não humilhar os outros devs". Invente estatísticas absurdas. O objetivo é fazer rir com sarcasmo.
+      `;
+      break;
+    case "roast":
+      toneInstruction = `
+        - **PERSONA**: Você é um Recrutador Sênior chato, crítico e realista.
+        - **TOM**: Profissional, frio, direto ao ponto. Sem "parabéns", apenas fatos.
+        - **FOCO**: Critique a falta de atividade, nomes de repositórios ruins, falta de descrição. Fale sobre empregabilidade real.
+      `;
+      break;
+  }
+
   return `
-    Você é um especialista em análise de desenvolvedores no GitHub.
-    MODO: ${mode === "roast" ? "Recrutador Brutal (Critique severamente)" : mode === "liar" ? "Mentiroso Exagerado (Elogie absurdamente)" : "Amigável e Construtivo"}.
-    
-    Analise este perfil com base na Bio, Repositórios e Linguagens.
-    O QUE ENTREGAR:
-    - Uma visão geral da "vibe" do perfil.
-    - Pontos fortes técnicos aparentes.
-    - Pontos fracos ou o que está faltando (ex: falta de documentação, projetos parados).
-    - Conclusão rápida.
+    ${toneInstruction}
 
-    NÃO ENTREGAR ROADMAP NESTA RESPOSTA. APENAS ANÁLISE.
+    **OBJETIVO DA ANÁLISE (Raio-X do Perfil Atual):**
+    Analise os dados fornecidos (Bio, Repositórios, Seguidores, Datas de Update).
+    
+    **O QUE VOCÊ DEVE FALAR (Baseado APENAS no que existe hoje):**
+    1. 📊 **Métricas e Atividade**: Comente sobre a quantidade de repositórios públicos. Eles parecem abandonados? A data da última atualização é recente? O perfil é ativo ou fantasma?
+    2. ⭐ **Qualidade Percebida**: Tem estrelas? Tem forks? Os nomes dos projetos fazem sentido ou são genéricos (ex: "teste", "aula01")?
+    3. 📝 **Commits e Código**: Baseado nas datas e descrições, parece que a pessoa commita com frequência ou faz "commit bomb" (tudo num dia só)?
+    4. 🕵️ **Veredito do Perfil**: Resuma a impressão que esse perfil passa hoje.
+
+    **REGRA ABSOLUTA:** - NÃO DÊ DICAS DE ESTUDO.
+    - NÃO CRIE ROADMAP.
+    - NÃO SUGIRA PROJETOS FUTUROS.
+    - Fale apenas do PASSADO e do PRESENTE do perfil.
   `;
 };
 
-// Prompt 2: Roteiro e Ideias (Botão Roxo)
 const ROADMAP_PROMPT = `
-  Você é um Mentor de Carreira Sênior Tech.
-  Com base nos dados deste perfil (linguagens e projetos atuais), crie um plano de ação.
+  Você é um Mentor de Carreira de Elite.
+  O usuário quer um **PLANO DE AÇÃO** para o futuro.
   
-  O QUE ENTREGAR (Use Markdown, seja direto):
+  Estruture a resposta assim:
   
-  1. 🎯 **Objetivo Identificado**: (Deduza o nível atual: Jr/Pleno/Senior e o foco).
+  1. 🎯 **Nível Identificado**: (Júnior, Pleno, etc, baseado na stack atual).
   
-  2. 🗺️ **Roadmap de Estudos (3 Meses)**:
-     - Mês 1: O que estudar para tapar buracos.
-     - Mês 2: Tecnologias para avançar.
+  2. 🗺️ **Roadmap de 3 Meses (O que fazer agora)**:
+     - Mês 1: Foco técnico (o que falta aprender).
+     - Mês 2: Foco prático (ferramentas).
      - Mês 3: Consolidação.
   
-  3. 💡 **Ideias de Projetos para o Portfólio**:
-     - Sugira 2 projetos práticos que combinem com a stack do usuário mas elevem o nível (ex: se usa React, sugira um SaaS com Next.js e Stripe).
+  3. 💡 **Sugestão de Projetos (Para melhorar o portfólio)**:
+     - Dê 2 ideias de projetos ORIGINAIS que usam a tecnologia que o usuário já sabe, mas elevando o nível.
      
-  4. 🚀 **Conselho de Ouro**: Uma dica final para conseguir vaga ou clientes.
+  4. 🚀 **Dica de Ouro**: Como se destacar em entrevistas.
 `;
 
 type ViewMode = "followers" | "following" | "mutual" | "nonFollowers";
@@ -155,54 +184,51 @@ export const AnalysisPage = () => {
 
   /* ================= HANDLERS ================= */
 
-  // Handler 1: Análise de Perfil (Botão Rosa)
   const openAnalysisModal = () => {
     setModalType("analysis");
     setAiResult("");
     setShowAIModal(true);
   };
 
-  const handleGenerateAnalysis = async () => {
-    if (!profile || !repos) return;
-    setAiLoading(true);
-    try {
-      const customPrompt = generateAnalysisPrompt(aiMode);
-      const result = await aiService.generateFeedback({
-        profile,
-        repos,
-        mode: aiMode,
-        customPrompt,
-      });
-      setAiResult(result);
-    } catch {
-      setAiResult("Erro ao gerar análise.");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // Handler 2: Roteiro e Projetos (Botão Roxo)
   const openRoadmapModal = () => {
     setModalType("roadmap");
     setAiResult("");
     setShowAIModal(true);
-    // Dispara automaticamente ou espera clique? Vamos esperar clique para padronizar
-    // handleGenerateRoadmap();
   };
 
-  const handleGenerateRoadmap = async () => {
+  const handleGenerate = async () => {
     if (!profile || !repos) return;
     setAiLoading(true);
+    setAiResult(""); // Limpa resultado anterior
+
     try {
+      let prompt = "";
+      let modeToSend = aiMode;
+
+      if (modalType === "analysis") {
+        // Usa o modo selecionado (friendly, liar, roast)
+        prompt = generateAnalysisPrompt(aiMode);
+      } else {
+        // Roadmap é sempre "Mentor sério/amigável", ignoramos o seletor de modo
+        modeToSend = "friendly";
+        prompt = ROADMAP_PROMPT;
+      }
+
       const result = await aiService.generateFeedback({
         profile,
         repos,
-        mode: "friendly",
-        customPrompt: ROADMAP_PROMPT,
+        mode: modeToSend,
+        customPrompt: prompt,
       });
+
       setAiResult(result);
+
+      // Se for roadmap, salva score (simulação)
+      if (modalType === "roadmap") {
+        // Lógica opcional de salvar score se o roadmap retornar nota
+      }
     } catch {
-      setAiResult("Erro ao gerar roteiro.");
+      setAiResult("Ocorreu um erro ao gerar a resposta. Tente novamente.");
     } finally {
       setAiLoading(false);
     }
@@ -254,7 +280,7 @@ export const AnalysisPage = () => {
 
         <button className="btn-purple" onClick={openRoadmapModal}>
           <BrainCircuit size={20} />
-          <span>Roteiro</span>
+          <span>Roteiro & Ideias</span>
         </button>
 
         {evolutionData.length > 0 && (
@@ -348,7 +374,7 @@ export const AnalysisPage = () => {
         )}
       </div>
 
-      {/* ================= MODAL ÚNICO (DINÂMICO) ================= */}
+      {/* ================= MODAL ÚNICO ================= */}
       {showAIModal && (
         <div className="modal-overlay" onClick={() => setShowAIModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -367,7 +393,7 @@ export const AnalysisPage = () => {
               )}
             </div>
 
-            {/* Opções só aparecem na Análise */}
+            {/* SELEÇÃO DE MODO (Apenas para Análise) */}
             {modalType === "analysis" && (
               <div className="ai-options">
                 <button
@@ -391,14 +417,18 @@ export const AnalysisPage = () => {
               </div>
             )}
 
+            {/* BOX DE SEGURANÇA (Antes do botão de gerar) */}
+            <div className="security-box" style={{ marginBottom: "16px" }}>
+              <Lock size={14} />
+              <span>
+                Seus dados são processados em tempo real e não são armazenados.
+              </span>
+            </div>
+
             <button
               className={modalType === "analysis" ? "btn-ai" : "btn-purple"}
               style={{ width: "100%", minHeight: "50px", flexDirection: "row" }}
-              onClick={
-                modalType === "analysis"
-                  ? handleGenerateAnalysis
-                  : handleGenerateRoadmap
-              }
+              onClick={handleGenerate}
               disabled={aiLoading}
             >
               {aiLoading
@@ -407,11 +437,6 @@ export const AnalysisPage = () => {
                   ? "Gerar Análise"
                   : "Criar Roteiro"}
             </button>
-
-            <div className="security-box">
-              <Lock size={14} />
-              <span>Análise em tempo real. Nada fica salvo.</span>
-            </div>
 
             {aiResult && (
               <div className="ai-result animate-fade-in">
