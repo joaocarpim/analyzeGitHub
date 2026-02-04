@@ -40,23 +40,23 @@ const generateAnalysisPrompt = (mode: AIMode) => {
   switch (mode) {
     case "friendly":
       toneInstruction = `
-        - **PERSONA**: Você é um amigo dev muito gente boa. 
-        - **TOM**: Use MUITOS emojis 😊, linguagem simples e acessível. Evite termos técnicos difíceis ("deploy", "CI/CD") ou explique-os de forma fofa.
-        - **FOCO**: Seja motivador, mesmo se o código for ruim. Diga que "o importante é tentar".
+        - **PERSONA**: Amigo dev entusiasta. 
+        - **TOM**: Use emojis 😊, linguagem simples, sem termos técnicos difíceis.
+        - **FOCO**: Valorize o esforço, mesmo se os números forem baixos.
       `;
       break;
     case "liar":
       toneInstruction = `
-        - **PERSONA**: Você é um humorista de stand-up sarcástico e exagerado.
-        - **TOM**: Seja engraçado, irônico e "mentiroso" no sentido de fazer piada com os dados.
-        - **FOCO**: Se tiver poucos commits, diga que é "estratégia de silêncio". Se tiver muitos, diga que a pessoa "não tem vida social". Invente títulos engraçados para a nota. O objetivo é o entretenimento.
+        - **PERSONA**: Humorista sarcástico e exagerado.
+        - **TOM**: Engraçado, irônico e "mentiroso" (faça piada com os dados).
+        - **FOCO**: Se tiver 0 estrelas, diga que é "conteúdo exclusivo VIP". Se tiver muitos commits, diga que a pessoa é um robô.
       `;
       break;
     case "roast":
       toneInstruction = `
-        - **PERSONA**: Você é um Recrutador Técnico Sênior extremamente exigente e frio.
-        - **TOM**: Profissional, direto, crítico e realista. Sem "parabéns" desnecessários.
-        - **FOCO**: Julgue a qualidade dos commits, a falta de documentação e a relevância real dos projetos para o mercado.
+        - **PERSONA**: Recrutador Técnico Sênior ranzinza.
+        - **TOM**: Frio, direto, crítico e realista.
+        - **FOCO**: Julgue severamente a falta de forks, estrelas ou commits com mensagens ruins (ex: "fix").
       `;
       break;
   }
@@ -64,25 +64,28 @@ const generateAnalysisPrompt = (mode: AIMode) => {
   return `
     ${toneInstruction}
 
-    **OBJETIVO: RAIO-X DO PERFIL ATUAL (Passado e Presente)**
-    Analise os dados fornecidos (Bio, Repositórios, Linguagens, Datas).
+    **OBJETIVO: ANÁLISE TÉCNICA DO PERFIL (RAIO-X)**
+    Analise os dados brutos: Repositórios, Datas de Update, Linguagens, Bio.
 
-    **ESTRUTURA DA RESPOSTA (Use Markdown):**
+    **VOCÊ DEVE RESPONDER EXATAMENTE ESSES PONTOS (Use Markdown):**
 
-    1. 📊 **Análise de Métricas**:
-       - **Commits**: Analise a frequência (baseado nas datas de update). São consistentes ou esporádicos? Parecem commits de qualidade ou só "update readme"?
-       - **Projetos e Techs**: Quais tecnologias dominam? Há diversidade ou é mono-stack?
-       - **Relevância**: Tem Estrelas? Tem Forks? O perfil tem impacto na comunidade ou é "fantasma"?
+    1. 📉 **Commits e Atividade**:
+       - O perfil é ativo? (Olhe as datas de update).
+       - Há volume de commits ou o perfil está parado?
+       - **Qualidade**: As mensagens e a frequência parecem profissionais ou é só "upload de arquivos"?
 
-    2. 🏆 **Nota do Perfil (0 a 10)**:
-       - Dê uma nota baseada *apenas* no que existe hoje.
-       - Justifique a nota em 1 frase curta (no tom da persona escolhida).
+    2. ⭐ **Relevância e Engajamento**:
+       - **Estrelas e Forks**: O perfil tem estrelas? Tem forks? (Se não tiver, comente sobre isso).
+       - Os projetos parecem reais ou são apenas exercícios de aula/cópias?
 
-    3. 🕵️ **Veredito Final**:
-       - Resuma a impressão que esse perfil passa para quem visita hoje.
-       - Cite 1 ponto forte e 1 ponto fraco CRÍTICO que precisa de atenção imediata (ex: "Falta Readme", "Projetos antigos").
+    3. 📝 **Descrição do que está acontecendo**:
+       - Resuma o "momento atual" desse dev. Ele está estudando? Está focado em uma linguagem específica? Parece um perfil sênior ou iniciante?
 
-    **REGRA:** NÃO CRIE PLANO DE ESTUDOS. NÃO DÊ IDEIAS DE PROJETOS FUTUROS. FALE DO QUE JÁ EXISTE.
+    4. 🏆 **Nota do Perfil (0 a 10)**:
+       - Dê uma nota para o estado ATUAL do perfil.
+       - Justifique em 1 frase.
+
+    **REGRA:** FALE APENAS DO QUE EXISTE NO PERFIL. NÃO DÊ DICAS DE ESTUDO NEM ROADMAP AGORA.
   `;
 };
 
@@ -214,7 +217,6 @@ export const AnalysisPage = () => {
       if (modalType === "analysis") {
         prompt = generateAnalysisPrompt(aiMode);
       } else {
-        // Roadmap usa tom padrão "Mentor Amigável/Sério"
         modeToSend = "friendly";
         prompt = ROADMAP_PROMPT;
       }
@@ -227,11 +229,6 @@ export const AnalysisPage = () => {
       });
 
       setAiResult(result);
-
-      // (Opcional) Salvar score no gráfico se a resposta contiver nota
-      if (modalType === "analysis") {
-        // Se quiser extrair a nota da análise para o gráfico, a lógica iria aqui
-      }
     } catch {
       setAiResult("Ocorreu um erro ao gerar a resposta. Tente novamente.");
     } finally {
@@ -446,7 +443,7 @@ export const AnalysisPage = () => {
               </div>
             )}
 
-            {/* BOX DE SEGURANÇA (Antes do botão de gerar) */}
+            {/* BOX DE SEGURANÇA */}
             <div className="security-box" style={{ marginBottom: "16px" }}>
               <Lock size={14} />
               <span>
