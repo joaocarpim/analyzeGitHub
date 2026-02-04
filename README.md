@@ -1,73 +1,108 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+---
 
-Currently, two official plugins are available:
+# ESTUDO DE CASO — AnalyzeGitHub
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## React Compiler
+## Contexto e Problema
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Muitos desenvolvedores possuem GitHub ativo, mas **não sabem como ele é percebido por recrutadores**.  
+Perguntas comuns:
 
-## Expanding the ESLint configuration
+- Meu GitHub está bom para o mercado?
+- O que falta para eu ser contratado?
+- Meu perfil parece iniciante ou profissional?
+- Estou evoluindo ao longo do tempo?
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+As ferramentas existentes focam apenas em métricas superficiais (stars, commits), sem contexto humano ou estratégico.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Objetivo do Projeto
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Criar uma plataforma que:
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- Analise perfis do GitHub de forma **inteligente**
+- Gere feedback claro, direto e acionável
+- Simule a visão de um recrutador real
+- Acompanhe a evolução do desenvolvedor
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Tudo isso de forma acessível, rápida e sem exigir login.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+
+## Solução Proposta
+
+O **AnalyzeGitHub** combina:
+- Dados reais do GitHub
+- Inteligência Artificial com prompt avançado
+- Visualização clara de resultados
+
+A aplicação gera:
+- Diagnóstico técnico
+- Score de empregabilidade
+- Roadmap personalizado
+- Histórico de evolução
+
+---
+
+## Decisões Técnicas
+
+### 🔹 Frontend
+- React + TypeScript para segurança e escalabilidade
+- Recharts para visualização de evolução
+- Componentização clara e reutilizável
+
+### 🔹 IA
+- Uso da **Groq API** por performance e custo
+- Modelo LLaMA 3
+- Prompt dividido por modos de análise
+- Extração estruturada de score via texto
+
+### 🔹 Infra
+- Vercel para deploy contínuo
+- Serverless Functions para backend
+- Sem banco de dados (MVP lean)
+
+---
+
+## Desafios Enfrentados
+
+- Limitações de APIs gratuitas
+- Prompt engineering para respostas úteis
+- Extração confiável de score
+- Garantir build estável no Vercel
+- Balancear crítica dura sem ser ofensivo
+
+Todos os desafios foram resolvidos com:
+- Logs estruturados
+- Tipagem forte
+- Refatoração incremental
+- Testes manuais reais
+
+---
+
+## Resultados 
+
+- Aplicação funcional e pública
+- Feedback claro e diferenciado
+- Projeto facilmente escalável
+- Demonstra domínio de:
+  - Frontend moderno
+  - Integração com IA
+  - Arquitetura serverless
+  - Pensamento de produto
+
+---
+
+## 🏁 Conclusão
+
+O **AnalyzeGitHub** não é apenas um analisador de perfil —  
+é uma ferramenta de **autoconhecimento profissional para desenvolvedores**.
+
+---
+
+## Desenvolvido por
+
+
+---
