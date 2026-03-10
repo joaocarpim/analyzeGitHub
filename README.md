@@ -16,7 +16,6 @@
 </details>
 
 ## Contexto e Problema
-
 Muitos desenvolvedores possuem GitHub ativo, mas **não sabem como ele é percebido por recrutadores**.  
 Perguntas comuns:
 
